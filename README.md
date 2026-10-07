@@ -49,32 +49,9 @@ $ gh-scout --since 30 acme/widgets acme/gadgets
 
 ```
 $ gh-scout --since 30 acme/widgets acme/gadgets
-
-          __                             __
-   ____ _/ /_     ______________  __  __/ /_
-  / __ `/ __ \   / ___/ ___/ __ \/ / / / __/
- / /_/ / / / /  (__  ) /__/ /_/ / /_/ / /_
- \__, /_/ /_/  /____/\___/\____/\__,_/\__/
-/____/
-  gh-scout · contribution issues without duplicate work
-
-## Ready targets · 4
-- [#482 · score 78 · easy] App crashes on empty config (nil deref on load)
-  - acme/widgets · https://github.com/acme/widgets/issues/482
-  - suggested PR: fix the null path: add a regression test, then the patch
-  - title states a concrete defect; body has a reproduction
-- [#903 · score 71 · hard] Logs leak the auth token on failed login
-  - acme/widgets · https://github.com/acme/widgets/issues/903
-  - suggested PR: write the expected-behaviour test, then implement
-  - possible duplicate: #910 "fix(auth): redact token in failure logs"
-
-### Excluded - already addressed (2)
-- acme/gadgets#151 Slow pagination from a missing index - PR #168 references it
-_12 issue(s) examined, 4 ready._
 ```
-
-The header goes to *stderr* and only when the output isn't JSON, so reports stay
-clean when piped into a file or another tool.
+The ASCII header above goes to *stderr* and only when the output isn't JSON, so
+reports stay clean when piped into a file or another tool.
 
 ## Screenshots
 
@@ -87,7 +64,8 @@ A full scouting run against two example repositories:
 ![gh-scout run](assets/session.png)
 
 Each target carries a **`score` (0-100)** - how fixable the issue looks, from
-its title, body and labels. The break down is under [How it decides](#how-it-decides).
+its title, body and labels. The exact weighting is tabled under
+[How it decides](#how-it-decides).
 
 ## Install
 
@@ -137,15 +115,57 @@ Each issue becomes a **candidate** with one of three statuses:
   that links an issue is signalling that issue is being worked on.
 - **`unclear`** - too little to judge; skipped from the ready set.
 
-The **fixability score** (0-100) rewards concrete signals - a title describing
-a defect, a reproduction/code sample in the body, mention of tests, and help
-labels - and discounts vagueness, feature requests, and question titles. The
-weighting lives in [`internal/scout/score.go`](internal/scout/score.go).
+The **fixability score (0-100)** is a sum of fixed point deltas - purely
+declarative rules, nothing inferred. The exact weighting lives in
+[`internal/scout/score.go`](internal/scout/score.go):
 
-Each ready target also gets a coarse **difficulty** (`easy`/`medium`/`hard`) and
-a one-line **suggested PR** hint. These are derived from the same signals (labels
-like `good first issue`, whether the body reproduces, mentions tests) - a
-heuristic aid, so still read the issue before starting.
+| Signal | Points |
+|---|---|
+| title names a defect (`crash` `panic` `leak` `null` `broken` `deadlock` …) | **+25** |
+| body has a reproduction or code sample | **+20** |
+| body describes the problem (≥ 60 chars) | **+10** |
+| mentions tests / expected behaviour | **+15** |
+| label `good first issue` | **+20** |
+| label `help wanted` | **+10** |
+| label `bug` | **+15** |
+| title is vague (`bug` `issue` `problem` …) | **-10** |
+| title is a question | **-20** |
+| empty / very thin body (< 40 chars) | **-15** |
+| `feature` / `enhancement` / `request` label | **-25** |
+
+The total is clamped to **0-100**. A candidate becomes **`ready`** only at
+**≥ 35** (`--min-score` raises the bar further); below that it is `unclear` and
+skipped.
+
+**Difficulty** (`easy` / `medium` / `hard`), decided in `advice.go`:
+
+| Difficulty | They get it when |
+|---|---|
+| `easy` | label `good first issue` / `help wanted`, or a typo-flavoured title, or the body reproduces *and* mentions tests |
+| `hard` | `feature`/`enhancement` label, an architectural title (`refactor` `redesign` `support`), or a long body with no reproduction |
+| `medium` | everything else |
+
+Each ready target also carries a one-line **suggested PR** hint picked from the
+same signals (e.g. *"fix the crash path: add a regression test, then the
+patch"*). It is a heuristic aid - still read the issue before starting.
+
+**Worked example** - *"App crashes on startup with null pointer"*, body with a
+`Steps to reproduce` block and `expected: no panic`, labelled `good first issue`:
+
+| Signal | Points |
+|---|---|
+| title names a defect (`crash`) | +25 |
+| body reproduces the problem | +20 |
+| mentions tests / expected behaviour | +15 |
+| label `good first issue` | +20 |
+| **total** | **80** |
+
+80 ≥ 35 → **`ready`**; no open PR references it → offered, difficulty `easy`,
+suggested PR *"fix the crash path: add a regression test, then the patch"*
+(the `crash` defect word in the title gives this the priority over the generic
+repro suggestion).
+An issue with none of those signals scores 0 and is **`unclear`** - it never
+appears in the ready list.
 
 A *possible duplicate* is flagged, but not excluded, when an open PR has a
 similar title without an explicit issue link.
