@@ -28,6 +28,34 @@ type PullRequest struct {
 	URL    string
 }
 
+// PRRef is one of a user's open pull requests as found by the search endpoint.
+type PRRef struct {
+	Repo      string
+	Number    int
+	Title     string
+	HTMLURL   string
+	UpdatedAt time.Time
+}
+
+// PRDetail is the subset of a single pull request needed to assess its state.
+type PRDetail struct {
+	// Mergeable is nil when GitHub could not (or will not) compute a
+	// mergeability verdict; false means the branch conflicts with its base.
+	Mergeable      *bool
+	MergeableState string
+	// HeadSHA is the commit SHA of the pull request's head branch.
+	HeadSHA string
+	// BaseRef is the name of the branch the pull request targets.
+	BaseRef   string
+	UpdatedAt time.Time
+}
+
+// Activity is one comment or review left by a user on a pull request.
+type Activity struct {
+	Login string
+	At    time.Time
+}
+
 // IssueLister is the interface the scout depends on to fetch repository data.
 // It exists so the scout can be tested against a fake and the HTTP client can
 // stay a thin, swappable implementation.

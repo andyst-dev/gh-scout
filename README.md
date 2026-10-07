@@ -144,6 +144,64 @@ behind the fixability score.
 | `weights.feature_request` | penalty when the issue looks like a feature request | `-25` |
 | `weights.title_generic` | penalty for a vague title (`bug`, `issue`, `problem`…) | `-10` |
 
+## PR scout
+
+`gh-scout prs` reports on **your own** open pull requests: for each one it says
+whether a maintainer or other person has responded since your last push, and
+whether the branch is up to date with its base. It never posts anything; like
+the issue scout it is read-only.
+
+```sh
+gh-scout prs [flags]
+```
+
+When no `--user` is given, the author is auto-detected from the authenticated
+GitHub user (which needs a token). Anonymous use of `prs` therefore requires
+`--user`.
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--user` | | PR author to scout (auto-detected from the token if empty) |
+| `--repos` | | comma-separated `owner/name` filter |
+| `--days` | `30` | drop PRs not updated within this many days |
+| `--max` | `50` | total pull requests examined |
+| `--format` | `markdown` | `markdown` or `json` |
+| `--token` | | GitHub token (defaults to `GITHUB_TOKEN`) |
+| `--version` | | print version and exit |
+
+**The response rule**: a response exists iff there is at least one comment or
+review by someone other than you, made *after your last push* (the head commit
+date). The report shows the *newest* such response.
+
+**PR status** (derived from GitHub's merge state):
+
+| Status | Meaning |
+|---|---|
+| `up to date` | mergeable and `mergeable_state` is `clean` |
+| `behind base` | branch is behind its base branch |
+| `conflicts` | branch conflicts with its base |
+| `evaluating` | GitHub has not computed a mergeable verdict yet |
+
+Example markdown output:
+
+```
+$ gh-scout prs --days 30
+# PR scout for andy · 2026-10-07 14:02
+
+## acme/widgets
+
+- [#42 · up to date] Fix crash on empty config (response: @alice 2d ago)
+  - https://github.com/acme/widgets/pull/42
+
+## acme/gadgets
+
+- [#17 · behind base] Speed up pagination
+  - https://github.com/acme/gadgets/pull/17
+```
+
+The same branding rule applies: the banner and a legend go to *stderr*, only
+when the output is not JSON and the terminal is interactive.
+
 ## How it decides
 
 Each issue becomes a **candidate** with one of three statuses:
@@ -224,10 +282,11 @@ similar title without an explicit issue link.
 ## Project layout
 
 ```
-cmd/gh-scout/     CLI entry point, flag wiring
+cmd/gh-scout/     CLI entry point, flag wiring (issue scout + `prs` subcommand)
 internal/github/  minimal REST client (tokened, paginated)
 internal/scout/   orchestration, anti-duplicate matching, scoring
-internal/report/  Markdown + JSON renderers
+internal/prs/     pull-request scout: response detection, status, renderers
+internal/report/  Markdown + JSON renderers (shared format kinds)
 ```
 
 `scout` depends only on an `IssueLister` interface, so the whole decision

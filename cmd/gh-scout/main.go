@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/andyst-dev/gh-scout/internal/github"
+	"github.com/andyst-dev/gh-scout/internal/prs"
 	"github.com/andyst-dev/gh-scout/internal/report"
 	"github.com/andyst-dev/gh-scout/internal/scout"
 )
@@ -44,6 +45,11 @@ func main() {
 
 // run is the whole CLI, isolated from main for testability.
 func run(args []string, stdout *os.File) error {
+	// The prs subcommand has its own flag set and pipeline.
+	if len(args) > 0 && args[0] == "prs" {
+		return runPRs(args[1:], stdout)
+	}
+
 	fs := flag.NewFlagSet("gh-scout", flag.ContinueOnError)
 	var (
 		sinceDays  = fs.Int("since", 14, "only issues created within this many days (0 disables)")
@@ -128,6 +134,60 @@ func run(args []string, stdout *os.File) error {
 		return err
 	}
 	out, err := writer.Write(rep)
+	if err != nil {
+		return err
+	}
+	_, err = stdout.Write(out)
+	return err
+}
+
+// runPRs scouts the user's own open pull requests and reports, for each,
+// whether someone has responded since their last push and whether it is up to
+// date with its base branch.
+func runPRs(args []string, stdout *os.File) error {
+	fs := flag.NewFlagSet("gh-scout prs", flag.ContinueOnError)
+	var (
+		user    = fs.String("user", "", "pull request author to scout (auto-detected from token if empty)")
+		repos   = fs.String("repos", "", "comma-separated owner/name filter")
+		days    = fs.Int("days", 30, "drop pull requests not updated within this many days")
+		max     = fs.Int("max", 50, "total pull requests to examine")
+		format  = fs.String("format", "markdown", "output format: markdown or json")
+		token   = fs.String("token", "", "GitHub token (defaults to GITHUB_TOKEN)")
+		showVer = fs.Bool("version", false, "print version and exit")
+	)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	if *showVer {
+		_, _ = fmt.Fprintln(stdout, "gh-scout", version)
+		return nil
+	}
+
+	client := github.New(*token)
+	runner := prs.NewRunner(client)
+	rep, err := runner.Run(context.Background(), prs.Options{
+		User:  *user,
+		Repos: splitComma(*repos),
+		Since: time.Duration(*days) * 24 * time.Hour,
+		Max:   *max,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Branding to stderr, only when the terminal is interactive and inside a
+	// pipe the output is not JSON. The report itself stays machine-clean.
+	if *format != "json" && isTerminal(os.Stderr) {
+		_, _ = fmt.Fprint(os.Stderr, banner)
+		_, _ = fmt.Fprintln(os.Stderr)
+		_, _ = fmt.Fprintln(os.Stderr, "  gh-scout prs · your pull requests and who has responded")
+		_, _ = fmt.Fprintln(os.Stderr, "  response  @author when someone other than you commented after your last push")
+		_, _ = fmt.Fprintln(os.Stderr, "  status    conflicts · behind base · up to date · evaluating")
+		_, _ = fmt.Fprintln(os.Stderr)
+	}
+
+	out, err := prs.Render(rep, report.Kind(*format))
 	if err != nil {
 		return err
 	}

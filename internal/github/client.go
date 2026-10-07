@@ -44,6 +44,13 @@ func New(token string) *Client {
 	}
 }
 
+// SetBaseURL overrides the API base URL. It exists so tests can point a client
+// at a local HTTP server.
+func (c *Client) SetBaseURL(base string) *Client {
+	c.baseURL = base
+	return c
+}
+
 // Issues fetches the open, non-pull-request issues of repo ("owner/name"),
 // newest first.
 func (c *Client) Issues(ctx context.Context, repo string) ([]Issue, error) {
@@ -79,6 +86,167 @@ func (c *Client) OpenPullRequests(ctx context.Context, repo string) ([]PullReque
 		})
 	}
 	return prs, nil
+}
+
+// CurrentUser returns the login of the authenticated GitHub user. It requires
+// a token; anonymous requests cannot identify a user.
+func (c *Client) CurrentUser(ctx context.Context) (string, error) {
+	if c.token == "" {
+		return "", errors.New("no GitHub token set: pass --token or set GITHUB_TOKEN to detect the user")
+	}
+	var raw struct {
+		Login string `json:"login"`
+	}
+	if err := c.getObject(ctx, "/user", &raw); err != nil {
+		return "", err
+	}
+	if raw.Login == "" {
+		return "", errors.New("GitHub /user returned no login")
+	}
+	return raw.Login, nil
+}
+
+// SearchPullRequests finds a user's open pull requests, newest by update time
+// first.
+func (c *Client) SearchPullRequests(ctx context.Context, user string) ([]PRRef, error) {
+	q := url.QueryEscape("author:" + user + " is:pr is:open")
+	endpoint := fmt.Sprintf("/search/issues?q=%s&sort=updated&order=desc&per_page=%d", q, perPage)
+	var raw struct {
+		Items []map[string]any `json:"items"`
+	}
+	if err := c.getObject(ctx, endpoint, &raw); err != nil {
+		return nil, err
+	}
+	refs := make([]PRRef, 0, len(raw.Items))
+	for _, it := range raw.Items {
+		repo := repoFromURL(str(it["repository_url"]))
+		if repo == "" {
+			continue
+		}
+		refs = append(refs, PRRef{
+			Repo:      repo,
+			Number:    intNum(it["number"]),
+			Title:     str(it["title"]),
+			HTMLURL:   str(it["html_url"]),
+			UpdatedAt: parseTime(it["updated_at"]),
+		})
+	}
+	return refs, nil
+}
+
+// PullRequest fetches the merge details and head commit of one pull request.
+func (c *Client) PullRequest(ctx context.Context, repo string, number int) (PRDetail, error) {
+	var d PRDetail
+	var raw struct {
+		Mergeable      *bool  `json:"mergeable"`
+		MergeableState string `json:"mergeable_state"`
+		Head           struct {
+			SHA string `json:"sha"`
+		} `json:"head"`
+		Base struct {
+			Ref string `json:"ref"`
+		} `json:"base"`
+		UpdatedAt string `json:"updated_at"`
+	}
+	endpoint := fmt.Sprintf("/repos/%s/pulls/%d", repo, number)
+	if err := c.getObject(ctx, endpoint, &raw); err != nil {
+		return d, err
+	}
+	d.Mergeable = raw.Mergeable
+	d.MergeableState = raw.MergeableState
+	d.HeadSHA = raw.Head.SHA
+	d.BaseRef = raw.Base.Ref
+	d.UpdatedAt = parseTime(raw.UpdatedAt)
+	return d, nil
+}
+
+// IssueCommenters returns the issue-thread comments on a pull request.
+func (c *Client) IssueCommenters(ctx context.Context, repo string, number int) ([]Activity, error) {
+	return c.activities(ctx, fmt.Sprintf("/repos/%s/issues/%d/comments", repo, number), "created_at")
+}
+
+// Reviewers returns the formal reviews submitted on a pull request.
+func (c *Client) Reviewers(ctx context.Context, repo string, number int) ([]Activity, error) {
+	return c.activities(ctx, fmt.Sprintf("/repos/%s/pulls/%d/reviews", repo, number), "submitted_at")
+}
+
+// ReviewCommenters returns the inline review comments on a pull request.
+func (c *Client) ReviewCommenters(ctx context.Context, repo string, number int) ([]Activity, error) {
+	return c.activities(ctx, fmt.Sprintf("/repos/%s/pulls/%d/comments", repo, number), "created_at")
+}
+
+// CommitDate returns the commit date of the given commit SHA.
+func (c *Client) CommitDate(ctx context.Context, repo, sha string) (time.Time, error) {
+	var raw struct {
+		Commit struct {
+			Committer struct {
+				Date string `json:"date"`
+			} `json:"committer"`
+		} `json:"commit"`
+	}
+	endpoint := fmt.Sprintf("/repos/%s/commits/%s", repo, sha)
+	if err := c.getObject(ctx, endpoint, &raw); err != nil {
+		return time.Time{}, err
+	}
+	t, err := time.Parse(time.RFC3339, raw.Commit.Committer.Date)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("parse commit date %q: %w", raw.Commit.Committer.Date, err)
+	}
+	return t, nil
+}
+
+// activities fetches a paginated collection endpoint and maps each item to an
+// Activity, taking the author from .user.login and the timestamp from atField.
+func (c *Client) activities(ctx context.Context, endpoint, atField string) ([]Activity, error) {
+	raw, err := c.list(ctx, endpoint)
+	if err != nil {
+		return nil, err
+	}
+	acts := make([]Activity, 0, len(raw))
+	for _, it := range raw {
+		user, _ := it["user"].(map[string]any)
+		acts = append(acts, Activity{
+			Login: str(user["login"]),
+			At:    parseTime(it[atField]),
+		})
+	}
+	return acts, nil
+}
+
+// getObject performs one unauthenticated-aware GET and decodes the JSON body
+// into dest (a pointer). It shares the list() error and rate-limit handling.
+func (c *Client) getObject(ctx context.Context, endpoint string, dest any) error {
+	u, err := url.Parse(c.baseURL + endpoint)
+	if err != nil {
+		return err
+	}
+	res, err := c.get(ctx, u.String())
+	if err != nil {
+		return err
+	}
+	defer func() { _ = res.Body.Close() }()
+	if err := checkStatus(res); err != nil {
+		return err
+	}
+	if err := json.NewDecoder(res.Body).Decode(dest); err != nil {
+		return fmt.Errorf("decode GitHub response: %w", err)
+	}
+	return nil
+}
+
+// get performs a GET with gh-scout's standard headers and returns the response
+// body for the caller to decode. The body must be closed by the caller.
+func (c *Client) get(ctx context.Context, reqURL string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", userAgent)
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
+	return c.client.Do(req)
 }
 
 // list GETs a paginated collection endpoint and returns all decoded items.
@@ -180,6 +348,39 @@ func str(v any) string {
 		return s
 	}
 	return ""
+}
+
+// parseTime parses an RFC3339 timestamp from a raw API item, returning the
+// zero time when the value is absent or malformed.
+func parseTime(v any) time.Time {
+	if s := str(v); s != "" {
+		if t, err := time.Parse(time.RFC3339, s); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
+}
+
+// repoFromURL extracts the "owner/name" of a repository from its API
+// repository_url, stripping the leading /repos/ prefix.
+func repoFromURL(repositoryURL string) string {
+	if idx := strings.Index(repositoryURL, "/repos/"); idx >= 0 {
+		return strings.TrimPrefix(repositoryURL[idx:], "/repos/")
+	}
+	return ""
+}
+
+// checkStatus validates a GitHub response, mapping the shared error cases
+// (rate limit, non-2xx) onto an error without reading the body.
+func checkStatus(res *http.Response) error {
+	if res.StatusCode == http.StatusTooManyRequests {
+		return errors.New("GitHub rate limit exceeded (set GITHUB_TOKEN for a higher quota)")
+	}
+	if res.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(res.Body, 512))
+		return fmt.Errorf("GitHub API %s: %s", res.Status, strings.TrimSpace(string(body)))
+	}
+	return nil
 }
 
 func intNum(v any) int {
