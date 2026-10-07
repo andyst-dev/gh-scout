@@ -68,7 +68,10 @@ func run(args []string, stdout *os.File) error {
 		_, _ = fmt.Fprint(os.Stderr, banner)
 		_, _ = fmt.Fprintln(os.Stderr) // end the final art line
 		_, _ = fmt.Fprintln(os.Stderr, "  gh-scout · contribution issues without duplicate work")
-		_, _ = fmt.Fprintln(os.Stderr, "  score = fixability 0-100 · defects, reproductions, tests & help labels help")
+		_, _ = fmt.Fprintln(os.Stderr)
+		_, _ = fmt.Fprintln(os.Stderr, "  score    0-100 = fixability | defect +25, repro +20, tests +15, good-first-issue +20")
+		_, _ = fmt.Fprintln(os.Stderr, "  status   ready (score ≥ 35, no open PR) · addressed (an open PR links it) · unclear (< 35, skipped)")
+		_, _ = fmt.Fprintln(os.Stderr, "  target   [score · easy/medium/hard] with a suggested PR line")
 		_, _ = fmt.Fprintln(os.Stderr)
 	}
 
