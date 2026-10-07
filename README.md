@@ -108,26 +108,22 @@ gh-scout --format json --min-score 60 acme/widgets
 ### Tuning the rules
 
 Every scoring weight and the `ready` threshold are configurable without
-recompiling. Generate a fully annotated copy (every field explained inline) that
-starts from the current defaults:
+recompiling. Generate a copy of the current defaults, then edit it:
 
 ```sh
 gh-scout rules-template > rules.json
 ```
 
-Because comments are allowed in the file (`//` and `/* ... */`), it doubles as a
-self-documenting starting point. Below is a small example - only `ready_threshold`,
-`title_defect` and `body_reproduction` are touched, every other weight keeps its
-default:
+The file is plain JSON - a field you leave out keeps its default, so you can
+change a single weight and leave the rest untouched. Every field is explained in
+the [Rules reference](#rules-reference) below. For example, an `issue` project
+that wants only well-described defects might raise the bar:
 
 ```json
 {
-  // Raise the bar: only clear, well-described defects reach the Ready list.
   "ready_threshold": 50,
   "weights": {
-    // A title that names a concrete defect matters more than the default.
     "title_defect": 40,
-    // A reproduction makes an issue much more actionable.
     "body_reproduction": 30
   }
 }
@@ -139,6 +135,26 @@ gh-scout --rules-file rules.json acme/widgets
 
 Valid thresholds are 0-100. `--min-score` still applies on top of the rules'
 ready threshold.
+
+### Rules reference
+
+A rules file holds two things: the `ready` threshold and the point deltas
+behind the fixability score.
+
+| Field | Meaning | Default |
+|---|---|---|
+| `ready_threshold` | minimum score for an issue to be `ready`; below it the issue is `unclear` and skipped | `35` |
+| `weights.title_defect` | bonus when the title names a concrete defect | `25` |
+| `weights.body_reproduction` | bonus when the body has a reproduction or code sample | `20` |
+| `weights.mentions_tests` | bonus when the body mentions tests or expected behaviour | `15` |
+| `weights.bug_label` | bonus when labelled `bug` | `15` |
+| `weights.good_first_issue` | bonus when labelled `good first issue` / `good-first-issue` | `20` |
+| `weights.help_wanted` | bonus when labelled `help wanted` / `help-wanted` | `10` |
+| `weights.body_substantial` | bonus when a long body (60+ chars) describes the problem with no reproduction | `10` |
+| `weights.title_question` | penalty when the title is a question, not a defect | `-20` |
+| `weights.body_empty` | penalty when the body is empty or very thin (< 40 chars) | `-15` |
+| `weights.feature_request` | penalty when the issue looks like a feature request | `-25` |
+| `weights.title_generic` | penalty for a vague title (`bug`, `issue`, `problem`…) | `-10` |
 
 ## How it decides
 

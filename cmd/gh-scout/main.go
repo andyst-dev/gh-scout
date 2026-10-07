@@ -63,9 +63,14 @@ func run(args []string, stdout *os.File) error {
 		return nil
 	}
 
-	// gh-scout rules-template prints an annotated, editable copy of the rules.
+	// gh-scout rules-template prints a copy of the default rules to edit.
 	if len(fs.Args()) == 1 && fs.Arg(0) == "rules-template" {
-		_, _ = stdout.WriteString(scout.RulesTemplate)
+		data, err := scout.DefaultRules().JSON()
+		if err != nil {
+			return err
+		}
+		_, _ = stdout.Write(data)
+		_, _ = fmt.Fprintln(stdout)
 		return nil
 	}
 
