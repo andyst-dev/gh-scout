@@ -28,6 +28,8 @@ type jsonCandidate struct {
 	CreatedAt  string   `json:"created_at"`
 	Labels     []string `json:"labels"`
 	Score      int      `json:"score"`
+	Difficulty string   `json:"difficulty,omitempty"`
+	Hint       string   `json:"hint,omitempty"`
 	Reason     string   `json:"reason"`
 }
 
@@ -68,6 +70,8 @@ func toJSON(cs []scout.Candidate) []jsonCandidate {
 			CreatedAt:  c.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 			Labels:     c.Labels,
 			Score:      c.Score,
+			Difficulty: c.Difficulty,
+			Hint:       c.Hint,
 			Reason:     c.Reason,
 		})
 	}

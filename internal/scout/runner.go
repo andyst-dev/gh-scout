@@ -90,6 +90,7 @@ func (r *Runner) evaluate(repo string, issue github.Issue, m *Matcher, opts Opti
 		}
 	default:
 		c.Status = StatusReady
+		c.Difficulty, c.Hint = Guidance(issue)
 	}
 	return c
 }

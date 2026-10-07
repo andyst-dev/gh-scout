@@ -35,7 +35,18 @@ type Candidate struct {
 	Status     Status
 	Reason     string
 	Score      int
+	// Difficulty is a coarse 3-step estimate of how approachable a fix looks.
+	Difficulty string
+	// Hint is a one-line suggestion of the kind of PR to open.
+	Hint string
 }
+
+// Difficulty levels attached to ready candidates.
+const (
+	DifficultyEasy   = "easy"
+	DifficultyMedium = "medium"
+	DifficultyHard   = "hard"
+)
 
 // Report is the full result of a scout run across several repositories.
 type Report struct {

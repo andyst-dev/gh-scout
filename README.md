@@ -39,7 +39,8 @@ much signal the issue gives to start work on it.
 $ gh-scout --since 30 acme/widgets acme/gadgets
 ...
 ## Ready targets · 4
-- **[#482 · score 78]** App crashes on empty config (nil deref on load)
+- **[#482 · score 78 · easy]** App crashes on empty config (nil deref on load)
+  - suggested PR: fix the null path: add a regression test, then the patch
   - possible duplicate: #910 "fix(auth): redact token in failure logs"
 ...
 ### Excluded - already addressed (2)
@@ -58,9 +59,13 @@ $ gh-scout --since 30 acme/widgets acme/gadgets
   gh-scout · contribution issues without duplicate work
 
 ## Ready targets · 4
-- [#482 · score 78] App crashes on empty config (nil deref on load)
+- [#482 · score 78 · easy] App crashes on empty config (nil deref on load)
   - acme/widgets · https://github.com/acme/widgets/issues/482
-- [#903 · score 71] Logs leak the auth token on failed login
+  - suggested PR: fix the null path: add a regression test, then the patch
+  - title states a concrete defect; body has a reproduction
+- [#903 · score 71 · hard] Logs leak the auth token on failed login
+  - acme/widgets · https://github.com/acme/widgets/issues/903
+  - suggested PR: write the expected-behaviour test, then implement
   - possible duplicate: #910 "fix(auth): redact token in failure logs"
 
 ### Excluded - already addressed (2)
@@ -136,6 +141,11 @@ The **fixability score** (0-100) rewards concrete signals - a title describing
 a defect, a reproduction/code sample in the body, mention of tests, and help
 labels - and discounts vagueness, feature requests, and question titles. The
 weighting lives in [`internal/scout/score.go`](internal/scout/score.go).
+
+Each ready target also gets a coarse **difficulty** (`easy`/`medium`/`hard`) and
+a one-line **suggested PR** hint. These are derived from the same signals (labels
+like `good first issue`, whether the body reproduces, mentions tests) - a
+heuristic aid, so still read the issue before starting.
 
 A *possible duplicate* is flagged, but not excluded, when an open PR has a
 similar title without an explicit issue link.

@@ -23,8 +23,11 @@ func (markdownWriter) Write(rep *scout.Report) ([]byte, error) {
 	} else {
 		fmt.Fprintf(&b, "## Ready targets · %d\n\n", len(ready))
 		for _, c := range ready {
-			fmt.Fprintf(&b, "- **[#%d · score %d]** %s\n", c.Number, c.Score, c.Title)
+			fmt.Fprintf(&b, "- **[#%d · score %d · %s]** %s\n", c.Number, c.Score, c.Difficulty, c.Title)
 			fmt.Fprintf(&b, "  - `%s` · %s\n", c.Repository, c.URL)
+			if c.Hint != "" {
+				fmt.Fprintf(&b, "  - suggested PR: %s\n", c.Hint)
+			}
 			fmt.Fprintf(&b, "  - %s\n", c.Reason)
 		}
 		b.WriteString("\n")
