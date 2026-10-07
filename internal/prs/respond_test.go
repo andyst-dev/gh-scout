@@ -53,6 +53,14 @@ func TestNewestResponse(t *testing.T) {
 			acts: []github.Activity{{Login: "carol", At: timeAt(2024, 1, 1, 23)}},
 			want: &Response{Author: "carol", Age: "1d ago"},
 		},
+		{
+			name: "author reply after reviewer means nothing pending",
+			acts: []github.Activity{
+				{Login: "carol", At: timeAt(2024, 1, 2, 10)}, // reviewer replies
+				{Login: "andy", At: timeAt(2024, 1, 2, 12)},  // author already answered
+			},
+			want: nil,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

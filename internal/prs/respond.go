@@ -15,24 +15,27 @@ type Response struct {
 	Age string
 }
 
-// NewestResponse finds the newest qualifying activity on a pull request: a
-// comment or review whose login is not the author and whose timestamp is
-// strictly after the author's last push. It returns nil when there is no such
-// activity.
-//
-// A response exists iff at least one activity is by someone other than the
-// author and after lastPush; the newest such activity is reported. This is
-// pure (no I/O) so it is table-testable.
+// NewestResponse finds the newest activity that still awaits the author: a
+// comment or review by someone other than the author, made after the author's
+// own most recent action (their last push or their last comment/review). If
+// the author already replied after the other party's comment, that reply is
+// the newer activity and nothing on the thread is pending. Pure (no I/O) so
+// it is table-testable.
 func NewestResponse(author string, lastPush, now time.Time, acts []github.Activity) *Response {
+	// The bar is the author's own newest action, not just their last push:
+	// a comment they wrote after a reviewer's reply means they handled it.
+	lastSelf := lastPush
+	for _, a := range acts {
+		if a.Login == author && a.At.After(lastSelf) {
+			lastSelf = a.At
+		}
+	}
 	var (
 		best github.Activity
 		ok   bool
 	)
 	for _, a := range acts {
-		if a.Login == author || !a.At.After(lastPush) {
-			continue
-		}
-		if !ok || a.At.After(best.At) {
+		if a.Login != author && a.At.After(lastSelf) && (!ok || a.At.After(best.At)) {
 			best, ok = a, true
 		}
 	}

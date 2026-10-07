@@ -170,8 +170,10 @@ GitHub user (which needs a token). Anonymous use of `prs` therefore requires
 | `--version` | | print version and exit |
 
 **The response rule**: a response exists iff there is at least one comment or
-review by someone other than you, made *after your last push* (the head commit
-date). The report shows the *newest* such response.
+review by someone other than you, made after *your own most recent activity*
+(the later of your last push and your last comment or review). If you already
+replied after their comment, nothing on that thread is pending. The report
+shows the *newest* such response.
 
 **PR status** (derived from GitHub's merge state), each with what it means for you:
 
