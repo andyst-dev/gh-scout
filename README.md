@@ -6,6 +6,8 @@
 request already targets, scores how "fixable" the rest look, and prints a ranked,
 motivated shortlist for an OSS contributor to pick from.
 
+<p align="center"><img src="assets/banner.svg" width="720" alt="gh-scout banner"/></p>
+
 [![go](https://img.shields.io/badge/go-1.27-00ADD8?logo=go)](https://go.dev)
 [![CI](https://github.com/andyst-dev/gh-scout/workflows/ci/badge.svg)](https://github.com/andyst-dev/gh-scout/actions)
 [![lint](https://img.shields.io/badge/golangci--lint-clean-2fbf4e?logo=go)](https://golangci-lint.run)
@@ -25,15 +27,18 @@ only tells you, for each issue, whether an open PR already covers it and how
 much signal the issue gives to start work on it.
 
 ```
-$ gh-scout --since 30 acme/widgets
+$ gh-scout --since 30 acme/widgets acme/gadgets
 ...
 ## Ready targets · 4
-- **[#2090 · score 75]** A bug finding's suggested fix breaks a Kody Rule…
-  - possible duplicate: #2046 "fix(cli-review): thread BYOK slot into CLI review pipeline"
+- **[#482 · score 78]** App crashes on empty config (nil deref on load)
+  - possible duplicate: #910 "fix(auth): redact token in failure logs"
 ...
-### Excluded - already addressed (3)
-- acme/widgets#2060 Abandoned Azure PRs remain open … - open PR #2058 already references it
+### Excluded - already addressed (2)
+- acme/gadgets#151 Slow pagination from a missing index - open PR #168 already references it
 ```
+
+<p align="center"><img src="assets/terminal-demo.svg" width="820" alt="gh-scout terminal run"/></p>
+*gh-scout prints an ASCII header on an interactive terminal and keeps the report itself clean for piping.*
 
 ## Install
 

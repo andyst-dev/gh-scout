@@ -23,6 +23,18 @@ import (
 
 var version = "dev"
 
+// banner is printed to stderr on interactive runs and reused as the README
+// header visual. Generated with figlet -f slant "gh scout". Stored per line
+// because the glyph contains a backtick, so it cannot be a raw string literal.
+var banner = strings.Join([]string{
+	"          __                             __",
+	"   ____ _/ /_     ______________  __  __/ /_",
+	"  / __ `/ __ \\   / ___/ ___/ __ \\/ / / / __/",
+	" / /_/ / / / /  (__  ) /__/ /_/ / /_/ / /_",
+	" \\__, /_/ /_/  /____/\\___/\\____/\\__,_/\\__/",
+	"/____/",
+}, "\n")
+
 func main() {
 	if err := run(os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "gh-scout:", err)
@@ -48,6 +60,15 @@ func run(args []string, stdout *os.File) error {
 	if *showVer {
 		_, _ = fmt.Fprintln(stdout, "gh-scout", version)
 		return nil
+	}
+
+	// The report goes to stdout and stays machine-clean. Branding goes to
+	// stderr, only when the terminal is interactive and the output is not JSON.
+	if *format != "json" && isTerminal(os.Stderr) {
+		_, _ = fmt.Fprint(os.Stderr, banner)
+		_, _ = fmt.Fprintln(os.Stderr) // end the final art line
+		_, _ = fmt.Fprintln(os.Stderr, "  gh-scout · contribution issues without duplicate work")
+		_, _ = fmt.Fprintln(os.Stderr)
 	}
 
 	repos := fs.Args()
@@ -97,4 +118,11 @@ func splitComma(s string) []string {
 		}
 	}
 	return out
+}
+
+// isTerminal reports whether f is attached to an interactive terminal. It is
+// used to keep branding out of piped output without pulling in a dependency.
+func isTerminal(f *os.File) bool {
+	info, err := f.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }
