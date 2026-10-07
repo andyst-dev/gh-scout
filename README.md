@@ -71,6 +71,16 @@ _12 issue(s) examined, 4 ready._
 The header goes to *stderr* and only when the output isn't JSON, so reports stay
 clean when piped into a file or another tool.
 
+## Screenshots
+
+The ASCII header, as printed on an interactive terminal:
+
+![gh-scout header](assets/banner.png)
+
+A full scouting run against two example repositories:
+
+![gh-scout run](assets/session.png)
+
 ## Install
 
 ```sh
