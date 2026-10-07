@@ -6,7 +6,16 @@
 request already targets, scores how "fixable" the rest look, and prints a ranked,
 motivated shortlist for an OSS contributor to pick from.
 
-<p align="center"><img src="assets/banner.svg" width="720" alt="gh-scout banner"/></p>
+```
+          __                             __
+   ____ _/ /_     ______________  __  __/ /_
+  / __ `/ __ \   / ___/ ___/ __ \/ / / / __/
+ / /_/ / / / /  (__  ) /__/ /_/ / /_/ / /_
+ \__, /_/ /_/  /____/\___/\____/\__,_/\__/
+/____/
+```
+
+The ASCII header above is printed by `gh-scout` when you run it in a terminal.
 
 [![go](https://img.shields.io/badge/go-1.27-00ADD8?logo=go)](https://go.dev)
 [![CI](https://github.com/andyst-dev/gh-scout/workflows/ci/badge.svg)](https://github.com/andyst-dev/gh-scout/actions)
@@ -37,8 +46,30 @@ $ gh-scout --since 30 acme/widgets acme/gadgets
 - acme/gadgets#151 Slow pagination from a missing index - open PR #168 already references it
 ```
 
-<p align="center"><img src="assets/terminal-demo.svg" width="820" alt="gh-scout terminal run"/></p>
-*gh-scout prints an ASCII header on an interactive terminal and keeps the report itself clean for piping.*
+```
+$ gh-scout --since 30 acme/widgets acme/gadgets
+
+          __                             __
+   ____ _/ /_     ______________  __  __/ /_
+  / __ `/ __ \   / ___/ ___/ __ \/ / / / __/
+ / /_/ / / / /  (__  ) /__/ /_/ / /_/ / /_
+ \__, /_/ /_/  /____/\___/\____/\__,_/\__/
+/____/
+  gh-scout · contribution issues without duplicate work
+
+## Ready targets · 4
+- [#482 · score 78] App crashes on empty config (nil deref on load)
+  - acme/widgets · https://github.com/acme/widgets/issues/482
+- [#903 · score 71] Logs leak the auth token on failed login
+  - possible duplicate: #910 "fix(auth): redact token in failure logs"
+
+### Excluded - already addressed (2)
+- acme/gadgets#151 Slow pagination from a missing index - PR #168 references it
+_12 issue(s) examined, 4 ready._
+```
+
+The header goes to *stderr* and only when the output isn't JSON, so reports stay
+clean when piped into a file or another tool.
 
 ## Install
 
