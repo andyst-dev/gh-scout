@@ -118,13 +118,26 @@ gh-scout rules-template > rules.json
 Edit it (e.g. raise `ready_threshold` to demand more signal, or reweight
 `title_defect`), then point the tool at it:
 
+```json
+{
+  "ready_threshold": 50,
+  "weights": {
+    "title_defect": 40,
+    "body_reproduction": 30
+  }
+}
+```
+
 ```sh
 gh-scout --rules-file rules.json acme/widgets
 ```
 
-Any field you leave unset keeps its default, so you can change a single weight
-and leave the rest untouched. Valid thresholds are 0-100. `--min-score` still
-applies on top of the rules' ready threshold.
+The example above only touches `ready_threshold`, `title_defect` and
+`body_reproduction` - every other weight keeps its default, so a one-line change
+is enough to shift the recommendations.
+
+Valid thresholds are 0-100. `--min-score` still applies on top of the rules'
+ready threshold.
 
 ## How it decides
 
