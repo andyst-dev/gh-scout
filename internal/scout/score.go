@@ -19,7 +19,7 @@ var genericTitles = []string{"bug", "issue", "problem", "doesn't work", "not wor
 var featureLabels = []string{"feature", "enhancement", "request", "discussion", "idea"}
 
 // scoreWith assesses how fixable an issue looks using caller-provided weights.
-// Score wraps it with the default ruleset.
+// The runner invokes it with either the default ruleset or a rules file.
 func scoreWith(w Weights, issue github.Issue) (int, []string) {
 	total := 0
 	var reasons []string
@@ -83,11 +83,6 @@ func scoreWith(w Weights, issue github.Issue) (int, []string) {
 		total = 0
 	}
 	return total, reasons
-}
-
-// Score assesses fixability with the default ruleset.
-func Score(issue github.Issue) (int, []string) {
-	return scoreWith(DefaultRules().Weights, issue)
 }
 
 func hasAnyWord(title string, words []string) bool {

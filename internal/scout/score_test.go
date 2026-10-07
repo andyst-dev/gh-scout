@@ -54,7 +54,7 @@ func TestScore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			score, _ := Score(tt.issue)
+			score := mustScore(t, tt.issue)
 			if score < tt.min {
 				t.Fatalf("Score() = %d, want at least %d", score, tt.min)
 			}
@@ -82,6 +82,6 @@ func TestScoreBounds(t *testing.T) {
 // mustScore returns the score or fails the test.
 func mustScore(t *testing.T, i github.Issue) int {
 	t.Helper()
-	s, _ := Score(i)
+	s, _ := scoreWith(DefaultRules().Weights, i)
 	return s
 }

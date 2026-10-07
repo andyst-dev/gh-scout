@@ -13,7 +13,7 @@ type markdownWriter struct{}
 
 func (markdownWriter) Write(rep *scout.Report) ([]byte, error) {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "# Contribution scouting - %s\n\n", rep.GeneratedAt.Format("2006-01-02 15:04"))
+	fmt.Fprintf(&b, "# Contribution scouting · %s\n\n", rep.GeneratedAt.Format("2006-01-02 15:04"))
 	fmt.Fprintf(&b, "Repositories: %s\n\n", strings.Join(rep.Repos, ", "))
 
 	ready, addressed, unclear := partition(rep.Candidates)
@@ -34,15 +34,15 @@ func (markdownWriter) Write(rep *scout.Report) ([]byte, error) {
 	}
 
 	if len(addressed) > 0 {
-		fmt.Fprintf(&b, "### Excluded - already addressed (%d)\n\n", len(addressed))
+		fmt.Fprintf(&b, "### Excluded (%d already addressed)\n\n", len(addressed))
 		for _, c := range addressed {
-			fmt.Fprintf(&b, "- %s#%d %s - %s\n", c.Repository, c.Number, c.Title, c.Reason)
+			fmt.Fprintf(&b, "- %s#%d %s (%s)\n", c.Repository, c.Number, c.Title, c.Reason)
 		}
 		b.WriteString("\n")
 	}
 
 	if len(unclear) > 0 {
-		fmt.Fprintf(&b, "### Skipped - too little signal (%d)\n", len(unclear))
+		fmt.Fprintf(&b, "### Skipped (%d, too little signal)\n", len(unclear))
 		for _, c := range unclear[:min(5, len(unclear))] {
 			fmt.Fprintf(&b, "- %s#%d %s\n", c.Repository, c.Number, c.Title)
 		}

@@ -64,9 +64,9 @@ session=[
  line(GREEN,"  · suggested PR: write the expected-behaviour test, then implement"),
  line(GRAY,"  · possible duplicate: #910 \"fix(auth): redact token in failure logs\""),
  [ (BG,"") ],
- line(RED,"### Excluded - already addressed (2)"),
- line(GRAY,"- acme/gadgets#151 Slow pagination from a missing index - PR #168 references it"),
- line(GRAY,"- acme/widgets#129 Stale cache after delete - PR #147 references it"),
+ line(RED,"### Excluded (2 already addressed)"),
+ line(GRAY,"- acme/gadgets#151 Slow pagination from a missing index (PR #168 references it)"),
+ line(GRAY,"- acme/widgets#129 Stale cache after delete (PR #147 references it)"),
  [ (BG,"") ],
  line(FG,"_12 issue(s) examined, 4 ready._"),
 ]

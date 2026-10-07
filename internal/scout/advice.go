@@ -36,7 +36,7 @@ func Guidance(issue github.Issue) (string, string) {
 	var hint string
 	switch {
 	case isTypo:
-		hint = "tiny one-line fix (typo/wording) - open the PR directly"
+		hint = "tiny one-line fix (typo/wording): open the PR directly"
 	case defect != "":
 		hint = "fix the " + defect + " path: add a regression test, then the patch"
 	case hasRepro && hasTests:
@@ -46,7 +46,7 @@ func Guidance(issue github.Issue) (string, string) {
 	case hasTests:
 		hint = "write the expected-behaviour test, then implement"
 	case smallBtn || helped:
-		hint = "well-specified, small surface - confirm scope and open a focused PR"
+		hint = "well-specified, small surface: confirm scope and open a focused PR"
 	default:
 		hint = "read the issue, confirm scope, open a focused PR referencing it (Fixes #N)"
 	}

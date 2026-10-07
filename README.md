@@ -1,21 +1,12 @@
 # gh-scout
 
-**Find contribution-worthy GitHub issues - without duplicating someone else's in-progress work.**
+![gh-scout](assets/banner.png)
+
+**Find contribution-worthy GitHub issues without duplicating someone else's in-progress work.**
 
 `gh-scout` scans a repository's open issues, filters out the ones an open pull
 request already targets, scores how "fixable" the rest look, and prints a ranked,
 motivated shortlist for an OSS contributor to pick from.
-
-```
-          __                             __
-   ____ _/ /_     ______________  __  __/ /_
-  / __ `/ __ \   / ___/ ___/ __ \/ / / / __/
- / /_/ / / / /  (__  ) /__/ /_/ / /_/ / /_
- \__, /_/ /_/  /____/\___/\____/\__,_/\__/
-/____/
-```
-
-The ASCII header above is printed by `gh-scout` when you run it in a terminal.
 
 [![go](https://img.shields.io/badge/go-1.27-00ADD8?logo=go)](https://go.dev)
 [![CI](https://github.com/andyst-dev/gh-scout/workflows/ci/badge.svg)](https://github.com/andyst-dev/gh-scout/actions)
@@ -31,7 +22,7 @@ already being fixed by someone else* is the part that wastes contributors'
 time. A pull request that `Fixes #123` makes issue #123 a trap: you start it,
 then someone closes it as a duplicate.
 
-That trap is exactly what `gh-scout` removes. It never posts anything - it
+That trap is exactly what `gh-scout` removes. It never posts anything; it
 only tells you, for each issue, whether an open PR already covers it and how
 much signal the issue gives to start work on it.
 
@@ -43,8 +34,8 @@ $ gh-scout --since 30 acme/widgets acme/gadgets
   - suggested PR: fix the null path: add a regression test, then the patch
   - possible duplicate: #910 "fix(auth): redact token in failure logs"
 ...
-### Excluded - already addressed (2)
-- acme/gadgets#151 Slow pagination from a missing index - open PR #168 already references it
+### Excluded (2 already addressed)
+- acme/gadgets#151 Slow pagination from a missing index (open PR #168 already references it)
 ```
 
 ```
@@ -55,15 +46,11 @@ reports stay clean when piped into a file or another tool.
 
 ## Screenshots
 
-The ASCII header, as printed on an interactive terminal:
-
-![gh-scout header](assets/banner.png)
-
 A full scouting run against two example repositories:
 
 ![gh-scout run](assets/session.png)
 
-Each target carries a **`score` (0-100)** - how fixable the issue looks, from
+Each target carries a **`score` (0-100)**: how fixable the issue looks, from
 its title, body and labels. The exact weighting is tabled under
 [How it decides](#how-it-decides).
 
@@ -114,7 +101,7 @@ recompiling. Generate a copy of the current defaults, then edit it:
 gh-scout rules-template > rules.json
 ```
 
-The file is plain JSON - a field you leave out keeps its default, so you can
+The file is plain JSON: a field you leave out keeps its default, so you can
 change a single weight and leave the rest untouched. Every field is explained in
 the [Rules reference](#rules-reference) below. For example, an `issue` project
 that wants only well-described defects might raise the bar:
@@ -160,14 +147,14 @@ behind the fixability score.
 
 Each issue becomes a **candidate** with one of three statuses:
 
-- **`ready`** - no open PR references it and it scored at least the threshold
+- **`ready`**: no open PR references it and it scored at least the threshold
   (≥ 35 in the default ruleset) to start work.
-- **`addressed`** - an open pull request at least mentions the issue
+- **`addressed`**: an open pull request at least mentions the issue
   (`Fixes #9`, `Closes #4`, or any `#N` in its body). Deliberately broad: a PR
   that links an issue is signalling that issue is being worked on.
-- **`unclear`** - too little to judge; skipped from the ready set.
+- **`unclear`**: too little to judge; skipped from the ready set.
 
-The **fixability score (0-100)** is a sum of fixed point deltas - purely
+The **fixability score (0-100)** is a sum of fixed point deltas, purely
 declarative rules, nothing inferred. The exact weighting lives in
 [`internal/scout/score.go`](internal/scout/score.go):
 
@@ -199,9 +186,9 @@ skipped.
 
 Each ready target also carries a one-line **suggested PR** hint picked from the
 same signals (e.g. *"fix the crash path: add a regression test, then the
-patch"*). It is a heuristic aid - still read the issue before starting.
+patch"*). It is a heuristic aid; still read the issue before starting.
 
-**Worked example** - *"App crashes on startup with null pointer"*, body with a
+**Worked example**: *"App crashes on startup with null pointer"*, body with a
 `Steps to reproduce` block and `expected: no panic`, labelled `good first issue`:
 
 | Signal | Points |
@@ -216,7 +203,7 @@ patch"*). It is a heuristic aid - still read the issue before starting.
 suggested PR *"fix the crash path: add a regression test, then the patch"*
 (the `crash` defect word in the title gives this the priority over the generic
 repro suggestion).
-An issue with none of those signals scores 0 and is **`unclear`** - it never
+An issue with none of those signals scores 0 and is **`unclear`**: it never
 appears in the ready list.
 
 A *possible duplicate* is flagged, but not excluded, when an open PR has a
