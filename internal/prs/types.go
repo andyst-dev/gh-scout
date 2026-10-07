@@ -29,7 +29,8 @@ type PR struct {
 	Number int
 	Title  string
 	URL    string
-	// Status is one of conflicts, behind base, up to date, evaluating.
+	// Status is one of up to date, behind base, conflicts, blocked, unstable,
+	// evaluating.
 	Status string
 	// Response is the newest reply by someone other than the author, or nil.
 	Response *Response

@@ -85,6 +85,8 @@ func TestStatus(t *testing.T) {
 		{name: "behind", d: github.PRDetail{Mergeable: &tru, MergeableState: "behind"}, want: "behind base"},
 		{name: "dirty means conflicts", d: github.PRDetail{Mergeable: &f, MergeableState: "dirty"}, want: "conflicts"},
 		{name: "mergeable false means conflicts", d: github.PRDetail{Mergeable: &f, MergeableState: "clean"}, want: "conflicts"},
+		{name: "blocked stays blocked", d: github.PRDetail{Mergeable: &tru, MergeableState: "blocked"}, want: "blocked"},
+		{name: "unstable stays unstable", d: github.PRDetail{Mergeable: &tru, MergeableState: "unstable"}, want: "unstable"},
 		{name: "unknown defaults to evaluating", d: github.PRDetail{Mergeable: nil, MergeableState: "unknown"}, want: "evaluating"},
 		{name: "null state defaults to evaluating", d: github.PRDetail{Mergeable: nil, MergeableState: ""}, want: "evaluating"},
 	}

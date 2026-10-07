@@ -43,7 +43,7 @@ func NewestResponse(author string, lastPush, now time.Time, acts []github.Activi
 }
 
 // status derives the pull request state from the merge details returned by the
-// GitHub API.
+// GitHub API. It maps each distinct mergeable_state to an actionable bucket.
 func status(d github.PRDetail) string {
 	switch {
 	case (d.Mergeable != nil && !*d.Mergeable) || d.MergeableState == "dirty":
@@ -52,7 +52,12 @@ func status(d github.PRDetail) string {
 		return "behind base"
 	case d.MergeableState == "clean":
 		return "up to date"
+	case d.MergeableState == "blocked":
+		return "blocked"
+	case d.MergeableState == "unstable":
+		return "unstable"
 	default:
+		// unknown, or an empty state while GitHub recomputes the verdict.
 		return "evaluating"
 	}
 }

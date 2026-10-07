@@ -173,14 +173,16 @@ GitHub user (which needs a token). Anonymous use of `prs` therefore requires
 review by someone other than you, made *after your last push* (the head commit
 date). The report shows the *newest* such response.
 
-**PR status** (derived from GitHub's merge state):
+**PR status** (derived from GitHub's merge state), each with what it means for you:
 
-| Status | Meaning |
-|---|---|
-| `up to date` | mergeable and `mergeable_state` is `clean` |
-| `behind base` | branch is behind its base branch |
-| `conflicts` | branch conflicts with its base |
-| `evaluating` | GitHub has not computed a mergeable verdict yet |
+| Status | Meaning | What to do |
+|---|---|---|
+| `up to date` | mergeable and `mergeable_state` is `clean` | nothing, it can merge |
+| `behind base` | the branch is behind its base branch | rebase onto the base |
+| `conflicts` | the branch conflicts with its base | rebase and resolve the conflicts |
+| `blocked` | mergeable but a required check or review is still pending | respond to the outstanding review / wait for the bot and CI to pass |
+| `unstable` | mergeable but some status checks are failing | look at the failing checks |
+| `evaluating` | GitHub has not computed a mergeable verdict yet | check again shortly |
 
 Example markdown output:
 

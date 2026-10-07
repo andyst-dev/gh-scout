@@ -183,7 +183,7 @@ func runPRs(args []string, stdout *os.File) error {
 		_, _ = fmt.Fprintln(os.Stderr)
 		_, _ = fmt.Fprintln(os.Stderr, "  gh-scout prs · your pull requests and who has responded")
 		_, _ = fmt.Fprintln(os.Stderr, "  response  @author when someone other than you commented after your last push")
-		_, _ = fmt.Fprintln(os.Stderr, "  status    conflicts · behind base · up to date · evaluating")
+		_, _ = fmt.Fprintln(os.Stderr, "  status    up to date · behind base · conflicts · blocked · unstable · evaluating")
 		_, _ = fmt.Fprintln(os.Stderr)
 	}
 
