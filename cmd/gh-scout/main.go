@@ -52,6 +52,7 @@ func run(args []string, stdout *os.File) error {
 		minScore   = fs.Int("min-score", 0, "drop candidates scoring below this")
 		format     = fs.String("format", "markdown", "output format: markdown or json")
 		showVer    = fs.Bool("version", false, "print version and exit")
+		rulesFile  = fs.String("rules-file", "", "JSON file overriding scoring weights (see `gh-scout rules-template`)")
 	)
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -60,6 +61,29 @@ func run(args []string, stdout *os.File) error {
 	if *showVer {
 		_, _ = fmt.Fprintln(stdout, "gh-scout", version)
 		return nil
+	}
+
+	// gh-scout rules-template prints an editable copy of the default rules.
+	if len(fs.Args()) == 1 && fs.Arg(0) == "rules-template" {
+		data, err := scout.DefaultRules().JSON()
+		if err != nil {
+			return err
+		}
+		_, _ = stdout.Write(data)
+		_, _ = fmt.Fprintln(stdout)
+		return nil
+	}
+
+	// Optional overrides for the scoring weights and the ready threshold.
+	var rules scout.Rules
+	if *rulesFile != "" {
+		data, err := os.ReadFile(*rulesFile)
+		if err != nil {
+			return fmt.Errorf("read rules file: %w", err)
+		}
+		if rules, err = scout.RulesFromJSON(data); err != nil {
+			return err
+		}
 	}
 
 	// The report goes to stdout and stays machine-clean. Branding goes to
@@ -90,6 +114,7 @@ func run(args []string, stdout *os.File) error {
 		Labels:     splitComma(*labels),
 		MaxPerRepo: *maxPerRepo,
 		MinScore:   *minScore,
+		Rules:      rules,
 	}
 
 	runner := scout.NewRunner(github.New(""))

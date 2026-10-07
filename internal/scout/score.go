@@ -6,22 +6,6 @@ import (
 	"github.com/andyst-dev/gh-scout/internal/github"
 )
 
-// score weights. Each rule contributes a delta to the total, clipped to
-// [0, 100]. Tuning these weights changes what the scout recommends first.
-const (
-	weightTitleDefect      = 25
-	weightBodyReproduction = 20
-	weightMentionsTests    = 15
-	weightBugLabel         = 15
-	weightFirstGood        = 20
-	weightHelpWanted       = 10
-	weightBodySubstantial  = 10
-	weightTitleQuestion    = -20
-	weightBodyEmpty        = -15
-	weightFeatureRequest   = -25
-	weightTitleGeneric     = -10
-)
-
 // defectWords hint that a title describes a concrete, fixable defect.
 var defectWords = []string{
 	"fix", "crash", "panic", "error", "broken", "incorrect", "wrong",
@@ -34,8 +18,9 @@ var genericTitles = []string{"bug", "issue", "problem", "doesn't work", "not wor
 // featureLabels mark an issue as a request rather than a defect.
 var featureLabels = []string{"feature", "enhancement", "request", "discussion", "idea"}
 
-// Score assesses how fixable an issue looks and the reasoning behind it.
-func Score(issue github.Issue) (int, []string) {
+// scoreWith assesses how fixable an issue looks using caller-provided weights.
+// Score wraps it with the default ruleset.
+func scoreWith(w Weights, issue github.Issue) (int, []string) {
 	total := 0
 	var reasons []string
 
@@ -44,50 +29,50 @@ func Score(issue github.Issue) (int, []string) {
 
 	switch {
 	case hasAnyWord(title, defectWords):
-		total += weightTitleDefect
+		total += w.TitleDefect
 		reasons = append(reasons, "title states a concrete defect")
 	case isGenericTitle(issue.Title):
-		total += weightTitleGeneric
+		total += w.TitleGeneric
 		reasons = append(reasons, "title is vague")
 	case isQuestion(title):
-		total += weightTitleQuestion
+		total += w.TitleQuestion
 		reasons = append(reasons, "title is a question, not a defect")
 	}
 
 	switch {
 	case reproduces(body):
-		total += weightBodyReproduction
+		total += w.BodyReproduction
 		reasons = append(reasons, "body has a reproduction or code sample")
 	case len(body) >= 60:
-		total += weightBodySubstantial
+		total += w.BodySubstantial
 		reasons = append(reasons, "body describes the problem")
 	case len(body) == 0:
-		total += weightBodyEmpty
+		total += w.BodyEmpty
 		reasons = append(reasons, "no body")
 	case len(body) < 40:
-		total += weightBodyEmpty
+		total += w.BodyEmpty
 		reasons = append(reasons, "body too thin to judge")
 	}
 
 	if mentionsTests(body) {
-		total += weightMentionsTests
+		total += w.MentionsTests
 		reasons = append(reasons, "mentions tests or expected behavior")
 	}
 
 	switch {
 	case hasLabel(issue.Labels, "good first issue") || hasLabel(issue.Labels, "good-first-issue"):
-		total += weightFirstGood
+		total += w.FirstGood
 		reasons = append(reasons, "labelled good first issue")
 	case hasLabel(issue.Labels, "help wanted") || hasLabel(issue.Labels, "help-wanted"):
-		total += weightHelpWanted
+		total += w.HelpWanted
 		reasons = append(reasons, "labelled help wanted")
 	case hasLabel(issue.Labels, "bug"):
-		total += weightBugLabel
+		total += w.BugLabel
 		reasons = append(reasons, "labelled bug")
 	}
 
 	if hasAnyLabel(issue.Labels, featureLabels) {
-		total += weightFeatureRequest
+		total += w.FeatureRequest
 		reasons = append(reasons, "looks like a feature request")
 	}
 
@@ -98,6 +83,11 @@ func Score(issue github.Issue) (int, []string) {
 		total = 0
 	}
 	return total, reasons
+}
+
+// Score assesses fixability with the default ruleset.
+func Score(issue github.Issue) (int, []string) {
+	return scoreWith(DefaultRules().Weights, issue)
 }
 
 func hasAnyWord(title string, words []string) bool {

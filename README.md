@@ -92,6 +92,7 @@ reference.
 | `--max` | `50` | max issues examined per repository |
 | `--min-score` | `0` | drop targets scoring below this |
 | `--format` | `markdown` | `markdown` or `json` |
+| `--rules-file` | | JSON file overriding scoring weights |
 | `--version` | | print version and exit |
 
 Examples:
@@ -103,6 +104,27 @@ gh-scout --since 30 --labels bug,help wanted acme/widgets acme/gadgets
 # Machine-readable output for another tool
 gh-scout --format json --min-score 60 acme/widgets
 ```
+
+### Tuning the rules
+
+Every scoring weight and the `ready` threshold are configurable without
+recompiling. Generate an editable template that starts from the current
+defaults:
+
+```sh
+gh-scout rules-template > rules.json
+```
+
+Edit it (e.g. raise `ready_threshold` to demand more signal, or reweight
+`title_defect`), then point the tool at it:
+
+```sh
+gh-scout --rules-file rules.json acme/widgets
+```
+
+Any field you leave unset keeps its default, so you can change a single weight
+and leave the rest untouched. Valid thresholds are 0-100. `--min-score` still
+applies on top of the rules' ready threshold.
 
 ## How it decides
 

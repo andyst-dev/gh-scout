@@ -66,6 +66,9 @@ type Options struct {
 	MaxPerRepo int
 	// MinScore drops candidates scoring below this value from the ready set.
 	MinScore int
+	// Rules overrides the default scoring weights and ready threshold. The
+	// zero value (the usual case) uses the built-in defaults.
+	Rules Rules
 }
 
 // IssueLister is what Run needs: the github.IssueLister subset is enough.

@@ -10,10 +10,6 @@ import (
 	"github.com/andyst-dev/gh-scout/internal/github"
 )
 
-// lowerScoreBound is the bar below which a non-addressed issue is judged too
-// unclear to be a confident fix target (StatusUnclear).
-const lowerScoreBound = 35
-
 // Runner evaluates repositories into candidates.
 type Runner struct {
 	lister github.IssueLister
@@ -53,6 +49,7 @@ func (r *Runner) Run(ctx context.Context, repos []string, opts Options) (*Report
 
 // evaluate turns a single issue into a candidate.
 func (r *Runner) evaluate(repo string, issue github.Issue, m *Matcher, opts Options) Candidate {
+	rules := appliedRules(opts.Rules)
 	c := Candidate{
 		Repository: repo,
 		Number:     issue.Number,
@@ -74,14 +71,14 @@ func (r *Runner) evaluate(repo string, issue github.Issue, m *Matcher, opts Opti
 		c.Reason = "possible duplicate: #" + strconv.Itoa(pr.Number) + " \"" + pr.Title + "\""
 	}
 
-	score, reasons := Score(issue)
+	score, reasons := scoreWith(rules.Weights, issue)
 	c.Score = score
 	if c.Reason == "" {
 		c.Reason = strings.Join(reasons, "; ")
 	}
 
 	switch {
-	case score < lowerScoreBound:
+	case score < rules.ReadyThreshold:
 		c.Status = StatusUnclear
 	case opts.MinScore > 0 && score < opts.MinScore:
 		c.Status = StatusUnclear
