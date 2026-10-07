@@ -68,6 +68,7 @@ func run(args []string, stdout *os.File) error {
 		_, _ = fmt.Fprint(os.Stderr, banner)
 		_, _ = fmt.Fprintln(os.Stderr) // end the final art line
 		_, _ = fmt.Fprintln(os.Stderr, "  gh-scout · contribution issues without duplicate work")
+		_, _ = fmt.Fprintln(os.Stderr, "  score = fixability 0-100 · defects, reproductions, tests & help labels help")
 		_, _ = fmt.Fprintln(os.Stderr)
 	}
 

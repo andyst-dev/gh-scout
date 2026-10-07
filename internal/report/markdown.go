@@ -51,6 +51,7 @@ func (markdownWriter) Write(rep *scout.Report) ([]byte, error) {
 
 	total := len(ready) + len(addressed) + len(unclear)
 	fmt.Fprintf(&b, "_%d issue(s) examined, %d ready._\n", total, len(ready))
+	b.WriteString("\n_Score 0-100 = how fixable an issue looks: clear defect, reproduction, tests and help labels help. Statuses: ready / addressed / duplicate._\n")
 	return b.Bytes(), nil
 }
 

@@ -50,6 +50,7 @@ session=[
  line(GREEN,ART[0]),line(GREEN,ART[1]),line(GREEN,ART[2]),
  line(GREEN,ART[3]),line(GREEN,ART[4]),line(GREEN,ART[5]),
  line(GREEN,"  gh-scout · contribution issues without duplicate work"),
+ line(GREEN,"  score = fixability 0-100 · defects, reproductions, tests & help labels help"),
  [ (BG,"") ],
  line(BLUE,"## Ready targets · 4"),
  [ (GREEN,"[#482 · score 78]"),(FG," App crashes on empty config (nil deref on load)") ],

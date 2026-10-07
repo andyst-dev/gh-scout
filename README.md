@@ -81,6 +81,9 @@ A full scouting run against two example repositories:
 
 ![gh-scout run](assets/session.png)
 
+Each target carries a **`score` (0-100)** - how fixable the issue looks, from
+its title, body and labels. The break down is under [How it decides](#how-it-decides).
+
 ## Install
 
 ```sh
