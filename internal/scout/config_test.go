@@ -41,6 +41,42 @@ func TestRulesFromJSONPartialFillsNotNull(t *testing.T) {
 	}
 }
 
+// RulesTemplate itself is JSONC and must load to the defaults.
+func TestRulesTemplateLoadsToDefaults(t *testing.T) {
+	parsed, err := RulesFromJSON([]byte(RulesTemplate))
+	if err != nil {
+		t.Fatalf("annotated template must parse: %v", err)
+	}
+	def := DefaultRules()
+	if parsed.ReadyThreshold != def.ReadyThreshold || parsed.Weights != def.Weights {
+		t.Fatalf("template != defaults:\n got %+v\nwant %+v", parsed, def)
+	}
+}
+
+// A commented file overrides fields but keeps unset defaults.
+func TestRulesFromJSONWithComments(t *testing.T) {
+	data := []byte(`{
+  // raise the bar
+  "ready_threshold": 50,
+  "weights": {
+    /* title defects matter more */
+    "title_defect": 40,
+    // a key with a slash-like value must survive stripping
+    "feature_request": -25
+  }
+}`)
+	parsed, err := RulesFromJSON(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsed.ReadyThreshold != 50 || parsed.Weights.TitleDefect != 40 {
+		t.Fatalf("commented override not applied: %+v", parsed)
+	}
+	if parsed.Weights.BodyReproduction != DefaultRules().Weights.BodyReproduction {
+		t.Fatalf("commented parse lost an unset default: %+v", parsed)
+	}
+}
+
 func TestRulesFromJSONRejectsBadThreshold(t *testing.T) {
 	_, err := RulesFromJSON([]byte(`{"ready_threshold":150}`))
 	if err == nil || !strings.Contains(err.Error(), "0-100") {

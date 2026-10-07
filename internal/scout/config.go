@@ -61,16 +61,97 @@ func appliedRules(r Rules) Rules {
 }
 
 // RulesFromJSON parses a rules file. It starts from the defaults so a partial
-// file only overrides the fields it sets.
+// file only overrides the fields it sets. Comments are allowed: both `//` line
+// and `/* ... */` block comments are stripped before parsing, so a rules file
+// can carry inline explanations (see RulesTemplate).
 func RulesFromJSON(data []byte) (Rules, error) {
 	base := DefaultRules()
-	if err := json.Unmarshal(data, &base); err != nil {
+	if err := json.Unmarshal(stripJSONComments(data), &base); err != nil {
 		return Rules{}, fmt.Errorf("parse rules file: %w", err)
 	}
 	if base.ReadyThreshold < 0 || base.ReadyThreshold > 100 {
 		return Rules{}, fmt.Errorf("ready_threshold must be within 0-100, got %d", base.ReadyThreshold)
 	}
 	return base, nil
+}
+
+// RulesTemplate is the annotated file printed by `gh-scout rules-template`. It
+// is valid JSONC: every line is loadable with RulesFromJSON, so it doubles as a
+// runnable starting point and an inline reference.
+const RulesTemplate = `{
+  // Minimum score for an issue to appear in the Ready list.
+  // Below it, an issue is marked "unclear" and skipped.
+  "ready_threshold": 35,
+
+  "weights": {
+    // Bonus when the title names a concrete defect (crash, panic, leak, null, deadlock...).
+    "title_defect": 25,
+    // Bonus when the body contains a reproduction or a code sample.
+    "body_reproduction": 20,
+    // Bonus when the body mentions tests or expected behavior.
+    "mentions_tests": 15,
+    // Bonus for the "bug" label.
+    "bug_label": 15,
+    // Bonus for "good first issue" / "good-first-issue".
+    "good_first_issue": 20,
+    // Bonus for "help wanted" / "help-wanted".
+    "help_wanted": 10,
+    // Bonus when a long body (60+ chars) describes the problem without a reproduction.
+    "body_substantial": 10,
+    // Penalty when the title is a question rather than a defect.
+    "title_question": -20,
+    // Penalty for an empty or very thin body (< 40 chars).
+    "body_empty": -15,
+    // Penalty when the issue looks like a feature request.
+    "feature_request": -25,
+    // Penalty for a vague title ("bug", "issue", "problem"...).
+    "title_generic": -10
+  }
+}
+`
+
+// stripJSONComments removes // line and /* */ block comments from a JSON
+// document. Config values here are numbers and short labels with no
+// URL-like slashes, so a minimal scanner suffices (it still respects strings,
+// so a quoted "//" inside a value is untouched).
+func stripJSONComments(b []byte) []byte {
+	out := make([]byte, 0, len(b))
+	i, n := 0, len(b)
+	inStr := false
+	for i < n {
+		c := b[i]
+		switch {
+		case inStr:
+			out = append(out, c)
+			if c == '\\' && i+1 < n {
+				out = append(out, b[i+1])
+				i += 2
+				continue
+			}
+			if c == '"' {
+				inStr = false
+			}
+			i++
+		case c == '"':
+			inStr = true
+			out = append(out, c)
+			i++
+		case c == '/' && i+1 < n && b[i+1] == '/':
+			for i < n && b[i] != '\n' {
+				i++
+			}
+		case c == '/' && i+1 < n && b[i+1] == '*':
+			i += 2
+			for i+1 < n && (b[i] != '*' || b[i+1] != '/') {
+				i++
+			}
+			i += 2
+		default:
+			out = append(out, c)
+			i++
+		}
+	}
+	return out
 }
 
 // JSON renders the rules as an indented, editable JSON document.

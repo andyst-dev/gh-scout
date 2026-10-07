@@ -108,21 +108,26 @@ gh-scout --format json --min-score 60 acme/widgets
 ### Tuning the rules
 
 Every scoring weight and the `ready` threshold are configurable without
-recompiling. Generate an editable template that starts from the current
-defaults:
+recompiling. Generate a fully annotated copy (every field explained inline) that
+starts from the current defaults:
 
 ```sh
 gh-scout rules-template > rules.json
 ```
 
-Edit it (e.g. raise `ready_threshold` to demand more signal, or reweight
-`title_defect`), then point the tool at it:
+Because comments are allowed in the file (`//` and `/* ... */`), it doubles as a
+self-documenting starting point. Below is a small example - only `ready_threshold`,
+`title_defect` and `body_reproduction` are touched, every other weight keeps its
+default:
 
 ```json
 {
+  // Raise the bar: only clear, well-described defects reach the Ready list.
   "ready_threshold": 50,
   "weights": {
+    // A title that names a concrete defect matters more than the default.
     "title_defect": 40,
+    // A reproduction makes an issue much more actionable.
     "body_reproduction": 30
   }
 }
@@ -131,10 +136,6 @@ Edit it (e.g. raise `ready_threshold` to demand more signal, or reweight
 ```sh
 gh-scout --rules-file rules.json acme/widgets
 ```
-
-The example above only touches `ready_threshold`, `title_defect` and
-`body_reproduction` - every other weight keeps its default, so a one-line change
-is enough to shift the recommendations.
 
 Valid thresholds are 0-100. `--min-score` still applies on top of the rules'
 ready threshold.
