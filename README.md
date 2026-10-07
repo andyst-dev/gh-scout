@@ -41,8 +41,9 @@ $ gh-scout --since 30 acme/widgets acme/gadgets
 ```
 $ gh-scout --since 30 acme/widgets acme/gadgets
 ```
-The ASCII header above goes to *stderr* and only when the output isn't JSON, so
-reports stay clean when piped into a file or another tool.
+The brand header (the banner shown at the top of this page) is drawn on
+*stderr* and only when the output isn't JSON, so reports stay clean when piped
+into a file or another tool.
 
 ## Screenshots
 
