@@ -55,14 +55,19 @@ func (r *Runner) Run(ctx context.Context, opts Options) (*Report, error) {
 	index := map[string]int{}
 
 	examined := 0
+	var hiddenByDays, hiddenByMax int
 	for _, ref := range refs {
-		if opts.Max > 0 && examined >= opts.Max {
-			break
-		}
+		// Filtered-out pull requests are counted, not silently dropped, so the
+		// report can say how many a default filter hid.
 		if opts.Since > 0 && time.Since(ref.UpdatedAt) > opts.Since {
+			hiddenByDays++
 			continue
 		}
 		if len(opts.Repos) > 0 && !contains(opts.Repos, ref.Repo) {
+			continue
+		}
+		if opts.Max > 0 && examined >= opts.Max {
+			hiddenByMax++
 			continue
 		}
 		examined++
@@ -122,6 +127,9 @@ func (r *Runner) Run(ctx context.Context, opts Options) (*Report, error) {
 			Hint:     hint,
 		})
 	}
+
+	rep.HiddenByDays = hiddenByDays
+	rep.HiddenByMax = hiddenByMax
 
 	sort.Slice(rep.Repos, func(a, b int) bool { return rep.Repos[a].Name < rep.Repos[b].Name })
 	return rep, nil

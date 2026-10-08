@@ -12,8 +12,10 @@ import (
 func prsFixture() *Report {
 	now := time.Now()
 	return &Report{
-		GeneratedAt: now,
-		User:        "andy",
+		GeneratedAt:  now,
+		User:         "andy",
+		HiddenByDays: 3,
+		HiddenByMax:  5,
 		Repos: []Repo{
 			{
 				Name: "acme/widgets",
@@ -54,6 +56,7 @@ func TestWriteMarkdown(t *testing.T) {
 		"[#43 · conflicts] Add feature",
 		"may be superseded: old/path.ts no longer exists on main",
 		"Skipped 1 pull request(s).",
+		"8 open pull request(s) not shown (3 older than --days, 5 beyond --max): raise --days / --max to include them.",
 	} {
 		if !strings.Contains(s, want) {
 			t.Errorf("markdown missing %q\n%s", want, s)
@@ -67,8 +70,10 @@ func TestWriteJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	var got struct {
-		User  string `json:"user"`
-		Repos []struct {
+		User         string `json:"user"`
+		HiddenByDays int    `json:"hidden_by_days"`
+		HiddenByMax  int    `json:"hidden_by_max"`
+		Repos        []struct {
 			Name         string `json:"name"`
 			PullRequests []struct {
 				Number   int    `json:"number"`
@@ -87,6 +92,9 @@ func TestWriteJSON(t *testing.T) {
 	}
 	if got.User != "andy" || len(got.Repos) != 2 {
 		t.Fatalf("unexpected JSON payload: %+v", got)
+	}
+	if got.HiddenByDays != 3 || got.HiddenByMax != 5 {
+		t.Fatalf("hidden counts not rendered: %+v", got)
 	}
 	first := got.Repos[0]
 	if first.PullRequests[0].Number != 42 || first.PullRequests[0].Status != "up to date" {

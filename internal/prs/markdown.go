@@ -87,5 +87,15 @@ func writeMarkdown(rep *Report) ([]byte, error) {
 			b.WriteString("\n")
 		}
 	}
+	if hidden := rep.HiddenByDays + rep.HiddenByMax; hidden > 0 {
+		var parts []string
+		if rep.HiddenByDays > 0 {
+			parts = append(parts, fmt.Sprintf("%d older than --days", rep.HiddenByDays))
+		}
+		if rep.HiddenByMax > 0 {
+			parts = append(parts, fmt.Sprintf("%d beyond --max", rep.HiddenByMax))
+		}
+		fmt.Fprintf(&b, "%d open pull request(s) not shown (%s): raise --days / --max to include them.\n", hidden, strings.Join(parts, ", "))
+	}
 	return b.Bytes(), nil
 }

@@ -4,9 +4,11 @@ import "encoding/json"
 
 // jsonReport is the stable on-the-wire shape of a PR scout report.
 type jsonReport struct {
-	User        string     `json:"user"`
-	GeneratedAt string     `json:"generated_at"`
-	Repos       []jsonRepo `json:"repos"`
+	User         string     `json:"user"`
+	GeneratedAt  string     `json:"generated_at"`
+	Repos        []jsonRepo `json:"repos"`
+	HiddenByDays int        `json:"hidden_by_days,omitempty"`
+	HiddenByMax  int        `json:"hidden_by_max,omitempty"`
 }
 
 type jsonRepo struct {
@@ -40,8 +42,10 @@ type jsonResponse struct {
 // writeJSON renders a machine-readable report.
 func writeJSON(rep *Report) ([]byte, error) {
 	out := jsonReport{
-		User:        rep.User,
-		GeneratedAt: rep.GeneratedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		User:         rep.User,
+		GeneratedAt:  rep.GeneratedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		HiddenByDays: rep.HiddenByDays,
+		HiddenByMax:  rep.HiddenByMax,
 	}
 	for _, repo := range rep.Repos {
 		jr := jsonRepo{Name: repo.Name, Skipped: repo.Skipped, Notes: repo.Notes}

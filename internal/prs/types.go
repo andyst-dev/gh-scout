@@ -12,6 +12,10 @@ type Report struct {
 	User string
 	// Repos holds the results grouped by repository, sorted by name.
 	Repos []Repo
+	// HiddenByDays counts open pull requests filtered out by the --days window.
+	HiddenByDays int
+	// HiddenByMax counts open pull requests left out by the --max cap.
+	HiddenByMax int
 }
 
 // Repo groups the assessed pull requests of one repository.
