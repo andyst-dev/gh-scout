@@ -94,12 +94,20 @@ func (r *Runner) Run(ctx context.Context, opts Options) (*Report, error) {
 			continue
 		}
 
+		rs, err := r.client.ReviewState(ctx, ref.Repo, ref.Number)
+		if err != nil {
+			rep.Skip(ref.Repo, "review state #"+strconv.Itoa(ref.Number)+": "+err.Error())
+			continue
+		}
+
+		st := status(detail)
 		rep.Repos[idx].PRs = append(rep.Repos[idx].PRs, PR{
 			Number:   ref.Number,
 			Title:    ref.Title,
 			URL:      ref.HTMLURL,
-			Status:   status(detail),
+			Status:   st,
 			Response: NewestResponse(user, lastPush, time.Now(), acts),
+			Action:   Classify(user, lastActivity(user, lastPush, acts), st, rs),
 		})
 	}
 

@@ -47,7 +47,7 @@ func (markdownWriter) Write(rep *scout.Report) ([]byte, error) {
 			fmt.Fprintf(&b, "- %s#%d %s\n", c.Repository, c.Number, c.Title)
 		}
 		if len(unclear) > 5 {
-			fmt.Fprintf(&b, "- … and %d more\n", len(unclear)-5)
+			fmt.Fprintf(&b, "- ... and %d more\n", len(unclear)-5)
 		}
 		b.WriteString("\n")
 	}

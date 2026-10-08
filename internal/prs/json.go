@@ -22,6 +22,13 @@ type jsonPR struct {
 	URL      string        `json:"url"`
 	Status   string        `json:"status"`
 	Response *jsonResponse `json:"response,omitempty"`
+	Action   jsonAction    `json:"action"`
+}
+
+type jsonAction struct {
+	Owner   string   `json:"owner"`
+	Reasons []string `json:"reasons,omitempty"`
+	Waiting string   `json:"waiting,omitempty"`
 }
 
 type jsonResponse struct {
@@ -38,7 +45,17 @@ func writeJSON(rep *Report) ([]byte, error) {
 	for _, repo := range rep.Repos {
 		jr := jsonRepo{Name: repo.Name, Skipped: repo.Skipped, Notes: repo.Notes}
 		for _, p := range repo.PRs {
-			jp := jsonPR{Number: p.Number, Title: p.Title, URL: p.URL, Status: p.Status}
+			jp := jsonPR{
+				Number: p.Number,
+				Title:  p.Title,
+				URL:    p.URL,
+				Status: p.Status,
+				Action: jsonAction{
+					Owner:   p.Action.Owner,
+					Reasons: p.Action.Reasons,
+					Waiting: p.Action.Waiting,
+				},
+			}
 			if p.Response != nil {
 				jp.Response = &jsonResponse{Author: p.Response.Author, Age: p.Response.Age}
 			}

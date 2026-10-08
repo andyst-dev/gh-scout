@@ -38,6 +38,8 @@ func multiPRServer(t *testing.T, items string, failSuffix string) *httptest.Serv
 			parts := strings.Split(strings.TrimRight(r.URL.Path, "/"), "/")
 			sha := "SHA" + parts[len(parts)-1]
 			_, _ = w.Write([]byte(`{"mergeable":true,"mergeable_state":"clean","head":{"sha":"` + sha + `"},"base":{"ref":"main"},"updated_at":"2024-01-05T00:00:00Z"}`))
+		case r.URL.Path == "/graphql":
+			_, _ = w.Write([]byte(`{"data":{"repository":{"pullRequest":{"reviewDecision":"","reviewThreads":{"nodes":[]}}}}}`))
 		default:
 			http.Error(w, "unexpected "+r.URL.Path, http.StatusInternalServerError)
 		}

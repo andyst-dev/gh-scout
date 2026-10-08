@@ -32,6 +32,8 @@ func prsTestServer(t *testing.T, author string) *httptest.Server {
 			_, _ = w.Write([]byte(`[{"user":{"login":"alice"},"created_at":"2024-01-06T00:00:00Z"}]`))
 		case "/repos/acme/widgets/commits/HEAD123":
 			_, _ = w.Write([]byte(`{"commit":{"committer":{"date":"2024-01-03T00:00:00Z"}}}`))
+		case "/graphql":
+			_, _ = w.Write([]byte(`{"data":{"repository":{"pullRequest":{"reviewDecision":"APPROVED","reviewThreads":{"nodes":[{"isResolved":false,"path":"libs/app.ts","line":12,"comments":{"nodes":[{"author":{"login":"bob"},"createdAt":"2024-01-07T00:00:00Z"}]}}]}}}}}`))
 		default:
 			http.Error(w, "unexpected path "+r.URL.Path, http.StatusInternalServerError)
 		}
@@ -67,6 +69,11 @@ func TestRunnerRun(t *testing.T) {
 	}
 	if rep.Repos[0].Skipped != 0 {
 		t.Fatalf("expected no skips, got %d", rep.Repos[0].Skipped)
+	}
+	// The branch is behind base (rebase) and an open thread has bob speaking
+	// last (01-07) after andy's push (01-03) - both make the PR the author's.
+	if pr[0].Action.Owner != OwnerYou {
+		t.Fatalf("expected action on the author, got %+v", pr[0].Action)
 	}
 }
 

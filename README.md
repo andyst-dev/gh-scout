@@ -142,14 +142,17 @@ behind the fixability score.
 | `weights.title_question` | penalty when the title is a question, not a defect | `-20` |
 | `weights.body_empty` | penalty when the body is empty or very thin (< 40 chars) | `-15` |
 | `weights.feature_request` | penalty when the issue looks like a feature request | `-25` |
-| `weights.title_generic` | penalty for a vague title (`bug`, `issue`, `problem`…) | `-10` |
+| `weights.title_generic` | penalty for a vague title (`bug`, `issue`, `problem`...) | `-10` |
 
 ## PR scout
 
 `gh-scout prs` reports on **your own** open pull requests: for each one it says
-whether a maintainer or other person has responded since your last push, and
-whether the branch is up to date with its base. It never posts anything; like
-the issue scout it is read-only.
+whether a maintainer or other person has responded since your last activity,
+whether the branch is up to date with its base, and - the headline - who owes
+the next move (`Up to you` vs `Waiting on others`). It never posts anything; like
+the issue scout it is read-only. The verdict reads GitHub's GraphQL
+`reviewDecision` and open review threads, so `prs` needs a token even when
+`--user` is passed.
 
 ```sh
 gh-scout prs [flags]
@@ -175,6 +178,22 @@ review by someone other than you, made after *your own most recent activity*
 replied after their comment, nothing on that thread is pending. The report
 shows the *newest* such response.
 
+**Action - who owes the next move** (`Up to you` / `Waiting on others`).
+A verdict from three signals GitHub already computes - no guesses:
+
+- the branch **conflicts** or is **behind** its base -> you rebase;
+- an **open review thread** whose newest comment is someone else's and is newer
+  than your last activity -> reply in that thread (the anchor is named, e.g.
+  `reply in libs/app.ts:12 (@alice)`);
+- `reviewDecision` is `CHANGES_REQUESTED` -> changes are due from you;
+
+Everything else is `Waiting on others`: reviewers, required checks, or a pending
+merge. A pull request can carry a conflict *and* a requested change; reasons
+are listed in that priority order. GitHub only marks a thread *resolved* when
+someone clicks Resolve, so a thread you handled but never resolved can
+(correctly) keep `reviewDecision` at `CHANGES_REQUESTED` and keep the PR under
+"Up to you" until you resolve it - the scout tells you to resolve those threads.
+
 **PR status** (derived from GitHub's merge state), each with what it means for you:
 
 | Status | Meaning | What to do |
@@ -186,22 +205,9 @@ shows the *newest* such response.
 | `unstable` | mergeable but some status checks are failing | look at the failing checks |
 | `evaluating` | GitHub has not computed a mergeable verdict yet | check again shortly |
 
-Example markdown output:
+A sample run:
 
-```
-$ gh-scout prs --days 30
-# PR scout for andy · 2026-10-07 14:02
-
-## acme/widgets
-
-- [#42 · up to date] Fix crash on empty config (response: @alice 2d ago)
-  - https://github.com/acme/widgets/pull/42
-
-## acme/gadgets
-
-- [#17 · behind base] Speed up pagination
-  - https://github.com/acme/gadgets/pull/17
-```
+![PR scout output](docs/prs-scout.png)
 
 The same branding rule applies: the banner and a legend go to *stderr*, only
 when the output is not JSON and the terminal is interactive.
@@ -211,7 +217,7 @@ when the output is not JSON and the terminal is interactive.
 Each issue becomes a **candidate** with one of three statuses:
 
 - **`ready`**: no open PR references it and it scored at least the threshold
-  (≥ 35 in the default ruleset) to start work.
+  (>= 35 in the default ruleset) to start work.
 - **`addressed`**: an open pull request at least mentions the issue
   (`Fixes #9`, `Closes #4`, or any `#N` in its body). Deliberately broad: a PR
   that links an issue is signalling that issue is being worked on.
@@ -223,20 +229,20 @@ declarative rules, nothing inferred. The exact weighting lives in
 
 | Signal | Points |
 |---|---|
-| title names a defect (`crash` `panic` `leak` `null` `broken` `deadlock` …) | **+25** |
+| title names a defect (`crash` `panic` `leak` `null` `broken` `deadlock` ...) | **+25** |
 | body has a reproduction or code sample | **+20** |
-| body describes the problem (≥ 60 chars) | **+10** |
+| body describes the problem (>= 60 chars) | **+10** |
 | mentions tests / expected behaviour | **+15** |
 | label `good first issue` | **+20** |
 | label `help wanted` | **+10** |
 | label `bug` | **+15** |
-| title is vague (`bug` `issue` `problem` …) | **-10** |
+| title is vague (`bug` `issue` `problem` ...) | **-10** |
 | title is a question | **-20** |
 | empty / very thin body (< 40 chars) | **-15** |
 | `feature` / `enhancement` / `request` label | **-25** |
 
 The total is clamped to **0-100**. A candidate becomes **`ready`** only at
-**≥ 35** (`--min-score` raises the bar further); below that it is `unclear` and
+**>= 35** (`--min-score` raises the bar further); below that it is `unclear` and
 skipped.
 
 **Difficulty** (`easy` / `medium` / `hard`), decided in `advice.go`:
@@ -262,7 +268,7 @@ patch"*). It is a heuristic aid; still read the issue before starting.
 | label `good first issue` | +20 |
 | **total** | **80** |
 
-80 ≥ 35 → **`ready`**; no open PR references it → offered, difficulty `easy`,
+80 >= 35 -> **`ready`**; no open PR references it -> offered, difficulty `easy`,
 suggested PR *"fix the crash path: add a regression test, then the patch"*
 (the `crash` defect word in the title gives this the priority over the generic
 repro suggestion).
@@ -289,7 +295,7 @@ similar title without an explicit issue link.
 cmd/gh-scout/     CLI entry point, flag wiring (issue scout + `prs` subcommand)
 internal/github/  minimal REST client (tokened, paginated)
 internal/scout/   orchestration, anti-duplicate matching, scoring
-internal/prs/     pull-request scout: response detection, status, renderers
+internal/prs/     pull-request scout: response detection, status, review-verdict action, renderers
 internal/report/  Markdown + JSON renderers (shared format kinds)
 ```
 

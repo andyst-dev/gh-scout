@@ -34,6 +34,8 @@ type PR struct {
 	Status string
 	// Response is the newest reply by someone other than the author, or nil.
 	Response *Response
+	// Action says who owes the next move (OwnerYou or OwnerThem) and why.
+	Action Action
 }
 
 // Skip records that one pull request in repo could not be assessed, keeping a

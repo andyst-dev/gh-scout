@@ -100,7 +100,7 @@ func run(args []string, stdout *os.File) error {
 		_, _ = fmt.Fprintln(os.Stderr, "  gh-scout · contribution issues without duplicate work")
 		_, _ = fmt.Fprintln(os.Stderr)
 		_, _ = fmt.Fprintln(os.Stderr, "  score    0-100 = fixability | defect +25, repro +20, tests +15, good-first-issue +20")
-		_, _ = fmt.Fprintln(os.Stderr, "  status   ready (score ≥ 35, no open PR) · addressed (an open PR links it) · unclear (< 35, skipped)")
+		_, _ = fmt.Fprintln(os.Stderr, "  status   ready (score >= 35, no open PR) · addressed (an open PR links it) · unclear (< 35, skipped)")
 		_, _ = fmt.Fprintln(os.Stderr, "  target   [score · easy/medium/hard] with a suggested PR line")
 		_, _ = fmt.Fprintln(os.Stderr)
 	}
@@ -155,6 +155,11 @@ func runPRs(args []string, stdout *os.File) error {
 		token   = fs.String("token", "", "GitHub token (defaults to GITHUB_TOKEN)")
 		showVer = fs.Bool("version", false, "print version and exit")
 	)
+	fs.Usage = func() {
+		prsLegend()
+		_, _ = fmt.Fprintln(os.Stderr)
+		fs.PrintDefaults()
+	}
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -181,9 +186,7 @@ func runPRs(args []string, stdout *os.File) error {
 	if *format != "json" && isTerminal(os.Stderr) {
 		_, _ = fmt.Fprint(os.Stderr, banner)
 		_, _ = fmt.Fprintln(os.Stderr)
-		_, _ = fmt.Fprintln(os.Stderr, "  gh-scout prs · your pull requests and who has responded")
-		_, _ = fmt.Fprintln(os.Stderr, "  response  @author when someone else commented after your last activity (push or comment)")
-		_, _ = fmt.Fprintln(os.Stderr, "  status    up to date · behind base · conflicts · blocked · unstable · evaluating")
+		prsLegend()
 		_, _ = fmt.Fprintln(os.Stderr)
 	}
 
@@ -193,6 +196,13 @@ func runPRs(args []string, stdout *os.File) error {
 	}
 	_, err = stdout.Write(out)
 	return err
+}
+
+func prsLegend() {
+	_, _ = fmt.Fprintln(os.Stderr, "  gh-scout prs · your pull requests and who has responded")
+	_, _ = fmt.Fprintln(os.Stderr, "  action   YOU when the branch conflicts/is behind, an open thread awaits your reply, or a CHANGES_REQUESTED is still open · else on them")
+	_, _ = fmt.Fprintln(os.Stderr, "  response  @author when someone else commented after your last activity (push or comment)")
+	_, _ = fmt.Fprintln(os.Stderr, "  status    up to date · behind base · conflicts · blocked · unstable · evaluating")
 }
 
 func splitComma(s string) []string {

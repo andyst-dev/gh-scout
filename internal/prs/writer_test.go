@@ -19,8 +19,10 @@ func prsFixture() *Report {
 				Name: "acme/widgets",
 				PRs: []PR{
 					{Number: 42, Title: "Fix crash", URL: "https://x/pr/42", Status: "up to date",
-						Response: &Response{Author: "alice", Age: "2d ago"}},
-					{Number: 43, Title: "Add feature", URL: "https://x/pr/43", Status: "conflicts"},
+						Response: &Response{Author: "alice", Age: "2d ago"},
+						Action:   Action{Owner: OwnerThem, Waiting: "review"}},
+					{Number: 43, Title: "Add feature", URL: "https://x/pr/43", Status: "conflicts",
+						Action: Action{Owner: OwnerYou, Reasons: []string{"rebase: the branch conflicts with its base"}}},
 				},
 			},
 			{
@@ -40,6 +42,10 @@ func TestWriteMarkdown(t *testing.T) {
 	s := string(out)
 	for _, want := range []string{
 		"# PR scout for andy ·",
+		"## Up to you (1)",
+		"acme/widgets #43 · conflicts | rebase: the branch conflicts with its base",
+		"## Waiting on others (1)",
+		"acme/widgets #42 · up to date | review (response: @alice 2d ago)",
 		"## acme/widgets",
 		"## acme/gadgets",
 		"[#42 · up to date] Fix crash",

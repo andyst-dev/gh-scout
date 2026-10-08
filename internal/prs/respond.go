@@ -22,20 +22,10 @@ type Response struct {
 // the newer activity and nothing on the thread is pending. Pure (no I/O) so
 // it is table-testable.
 func NewestResponse(author string, lastPush, now time.Time, acts []github.Activity) *Response {
-	// The bar is the author's own newest action, not just their last push:
-	// a comment they wrote after a reviewer's reply means they handled it.
-	lastSelf := lastPush
+	var best github.Activity
+	var ok bool
 	for _, a := range acts {
-		if a.Login == author && a.At.After(lastSelf) {
-			lastSelf = a.At
-		}
-	}
-	var (
-		best github.Activity
-		ok   bool
-	)
-	for _, a := range acts {
-		if a.Login != author && a.At.After(lastSelf) && (!ok || a.At.After(best.At)) {
+		if a.Login != author && a.At.After(lastActivity(author, lastPush, acts)) && (!ok || a.At.After(best.At)) {
 			best, ok = a, true
 		}
 	}
@@ -43,6 +33,19 @@ func NewestResponse(author string, lastPush, now time.Time, acts []github.Activi
 		return nil
 	}
 	return &Response{Author: best.Login, Age: ageString(now.Sub(best.At))}
+}
+
+// lastActivity returns the author's own newest action: their last push or any
+// later comment or review of theirs. A reply means they already handled
+// whatever came before it, so nothing earlier counts as awaiting them.
+func lastActivity(author string, lastPush time.Time, acts []github.Activity) time.Time {
+	last := lastPush
+	for _, a := range acts {
+		if a.Login == author && a.At.After(last) {
+			last = a.At
+		}
+	}
+	return last
 }
 
 // status derives the pull request state from the merge details returned by the
