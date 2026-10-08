@@ -38,6 +38,9 @@ func writeMarkdown(rep *Report) ([]byte, error) {
 			if ln.pr.URL != "" {
 				fmt.Fprintf(&b, "  - %s\n", ln.pr.URL)
 			}
+			if ln.pr.Hint != "" {
+				fmt.Fprintf(&b, "  - %s\n", ln.pr.Hint)
+			}
 			b.WriteString("\n")
 		}
 	}
@@ -70,6 +73,9 @@ func writeMarkdown(rep *Report) ([]byte, error) {
 			b.WriteString(line + "\n")
 			if p.URL != "" {
 				fmt.Fprintf(&b, "  - %s\n", p.URL)
+			}
+			if p.Hint != "" {
+				fmt.Fprintf(&b, "  - %s\n", p.Hint)
 			}
 			b.WriteString("\n")
 		}

@@ -21,6 +21,7 @@ type jsonPR struct {
 	Title    string        `json:"title"`
 	URL      string        `json:"url"`
 	Status   string        `json:"status"`
+	Hint     string        `json:"hint,omitempty"`
 	Response *jsonResponse `json:"response,omitempty"`
 	Action   jsonAction    `json:"action"`
 }
@@ -50,6 +51,7 @@ func writeJSON(rep *Report) ([]byte, error) {
 				Title:  p.Title,
 				URL:    p.URL,
 				Status: p.Status,
+				Hint:   p.Hint,
 				Action: jsonAction{
 					Owner:   p.Action.Owner,
 					Reasons: p.Action.Reasons,

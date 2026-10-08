@@ -22,7 +22,8 @@ func prsFixture() *Report {
 						Response: &Response{Author: "alice", Age: "2d ago"},
 						Action:   Action{Owner: OwnerThem, Waiting: "review"}},
 					{Number: 43, Title: "Add feature", URL: "https://x/pr/43", Status: "conflicts",
-						Action: Action{Owner: OwnerYou, Reasons: []string{"rebase: the branch conflicts with its base"}}},
+						Action: Action{Owner: OwnerYou, Reasons: []string{"rebase: the branch conflicts with its base"}},
+						Hint:   "may be superseded: old/path.ts no longer exists on main"},
 				},
 			},
 			{
@@ -51,6 +52,7 @@ func TestWriteMarkdown(t *testing.T) {
 		"[#42 · up to date] Fix crash",
 		"(response: @alice 2d ago)",
 		"[#43 · conflicts] Add feature",
+		"may be superseded: old/path.ts no longer exists on main",
 		"Skipped 1 pull request(s).",
 	} {
 		if !strings.Contains(s, want) {
@@ -71,6 +73,7 @@ func TestWriteJSON(t *testing.T) {
 			PullRequests []struct {
 				Number   int    `json:"number"`
 				Status   string `json:"status"`
+				Hint     string `json:"hint"`
 				Response *struct {
 					Author string `json:"author"`
 					Age    string `json:"age"`
@@ -94,6 +97,9 @@ func TestWriteJSON(t *testing.T) {
 	}
 	if first.PullRequests[1].Response != nil {
 		t.Fatalf("response of PR 43 should be omitted, got %+v", first.PullRequests[1].Response)
+	}
+	if first.PullRequests[1].Hint == "" {
+		t.Fatal("hint of PR 43 should be rendered in JSON")
 	}
 	if got.Repos[1].Skipped != 1 {
 		t.Fatalf("skipped count wrong: %+v", got.Repos[1])

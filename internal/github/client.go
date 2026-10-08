@@ -160,6 +160,56 @@ func (c *Client) PullRequest(ctx context.Context, repo string, number int) (PRDe
 	return d, nil
 }
 
+// PullFiles returns the paths a pull request changes, with their status.
+func (c *Client) PullFiles(ctx context.Context, repo string, number int) ([]FileChange, error) {
+	raw, err := c.list(ctx, fmt.Sprintf("/repos/%s/pulls/%d/files", repo, number))
+	if err != nil {
+		return nil, err
+	}
+	files := make([]FileChange, 0, len(raw))
+	for _, it := range raw {
+		if path := str(it["filename"]); path != "" {
+			files = append(files, FileChange{Path: path, Status: str(it["status"])})
+		}
+	}
+	return files, nil
+}
+
+// FileExistsOn reports whether path exists on ref (a branch, tag or SHA). A
+// 404 is a definitive "no", not an error.
+func (c *Client) FileExistsOn(ctx context.Context, repo, path, ref string) (bool, error) {
+	u, err := url.Parse(c.baseURL + "/repos/" + repo + "/contents/" + escapePath(path))
+	if err != nil {
+		return false, err
+	}
+	q := u.Query()
+	q.Set("ref", ref)
+	u.RawQuery = q.Encode()
+	res, err := c.get(ctx, u.String())
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = res.Body.Close() }()
+	switch res.StatusCode {
+	case http.StatusOK:
+		return true, nil
+	case http.StatusNotFound:
+		return false, nil
+	default:
+		return false, checkStatus(res)
+	}
+}
+
+// escapePath percent-escapes each segment of a repository path, leaving the
+// slashes that separate them.
+func escapePath(path string) string {
+	parts := strings.Split(path, "/")
+	for i, p := range parts {
+		parts[i] = url.PathEscape(p)
+	}
+	return strings.Join(parts, "/")
+}
+
 // IssueCommenters returns the issue-thread comments on a pull request.
 func (c *Client) IssueCommenters(ctx context.Context, repo string, number int) ([]Activity, error) {
 	return c.activities(ctx, fmt.Sprintf("/repos/%s/issues/%d/comments", repo, number), "created_at")

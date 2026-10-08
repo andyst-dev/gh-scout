@@ -36,6 +36,8 @@ type PR struct {
 	Response *Response
 	// Action says who owes the next move (OwnerYou or OwnerThem) and why.
 	Action Action
+	// Hint is an advisory note (a likely-superseded signal), or empty.
+	Hint string
 }
 
 // Skip records that one pull request in repo could not be assessed, keeping a

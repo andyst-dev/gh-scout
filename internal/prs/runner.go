@@ -101,6 +101,17 @@ func (r *Runner) Run(ctx context.Context, opts Options) (*Report, error) {
 		}
 
 		st := status(detail)
+
+		// A conflicting branch is sometimes a sign the change already landed:
+		// if a file the pull request modifies no longer exists on its base, the
+		// base moved or merged it. Advisory only - never a skip.
+		var hint string
+		if st == "conflicts" {
+			if h, err := r.supersessionHint(ctx, ref.Repo, detail.BaseRef, ref.Number); err == nil {
+				hint = h
+			}
+		}
+
 		rep.Repos[idx].PRs = append(rep.Repos[idx].PRs, PR{
 			Number:   ref.Number,
 			Title:    ref.Title,
@@ -108,6 +119,7 @@ func (r *Runner) Run(ctx context.Context, opts Options) (*Report, error) {
 			Status:   st,
 			Response: NewestResponse(user, lastPush, time.Now(), acts),
 			Action:   Classify(user, lastActivity(user, lastPush, acts), st, rs),
+			Hint:     hint,
 		})
 	}
 

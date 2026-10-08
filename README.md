@@ -238,6 +238,12 @@ awaits the reviewer's re-approval.
 | `unstable` | mergeable but some status checks are failing | look at the failing checks |
 | `evaluating` | GitHub has not computed a mergeable verdict yet | check again shortly |
 
+**Superseded hint.** When a branch conflicts with its base, the scout also
+checks whether a file the pull request modifies still exists on that base. If
+the base renamed or removed one, the change may already be there, so the scout
+adds an advisory `may be superseded: ...` line under that pull request. It is a
+hint, not a verdict - read the base before spending a rebase on it.
+
 A sample run:
 
 ![PR scout output](docs/prs-scout.png)

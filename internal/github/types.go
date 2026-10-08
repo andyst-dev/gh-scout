@@ -50,6 +50,13 @@ type PRDetail struct {
 	UpdatedAt time.Time
 }
 
+// FileChange is one path a pull request touches, with GitHub's change status
+// (added, modified, removed, renamed).
+type FileChange struct {
+	Path   string
+	Status string
+}
+
 // Activity is one comment or review left by a user on a pull request.
 type Activity struct {
 	Login string

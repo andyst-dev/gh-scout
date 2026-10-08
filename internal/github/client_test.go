@@ -356,3 +356,50 @@ func TestClientIssuesWithoutToken(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestClientPullFilesAndFileExistsOn(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/pulls/7/files"):
+			_, _ = w.Write([]byte(`[
+			  {"filename": "a/moved.ts", "status": "modified"},
+			  {"filename": "b/kept.ts", "status": "modified"},
+			  {"filename": "c/added.ts", "status": "added"}
+			]`))
+		case strings.Contains(r.URL.Path, "/contents/a/moved.ts"):
+			http.Error(w, `{"message": "Not Found"}`, http.StatusNotFound)
+		case strings.Contains(r.URL.Path, "/contents/b/kept.ts"):
+			_, _ = w.Write([]byte(`{"name": "kept.ts"}`))
+		default:
+			http.Error(w, "unexpected "+r.URL.Path, http.StatusInternalServerError)
+		}
+	}))
+	defer srv.Close()
+	c := New("test-token")
+	c.baseURL = srv.URL
+
+	files, err := c.PullFiles(context.Background(), "acme/widgets", 7)
+	if err != nil {
+		t.Fatalf("PullFiles: %v", err)
+	}
+	if len(files) != 3 || files[0].Path != "a/moved.ts" || files[0].Status != "modified" {
+		t.Fatalf("PullFiles = %+v", files)
+	}
+
+	moved, err := c.FileExistsOn(context.Background(), "acme/widgets", "a/moved.ts", "main")
+	if err != nil {
+		t.Fatalf("FileExistsOn 404: %v", err)
+	}
+	if moved {
+		t.Fatal("a/moved.ts should be reported absent (404 is a definitive no)")
+	}
+
+	kept, err := c.FileExistsOn(context.Background(), "acme/widgets", "b/kept.ts", "main")
+	if err != nil {
+		t.Fatalf("FileExistsOn 200: %v", err)
+	}
+	if !kept {
+		t.Fatal("b/kept.ts should be reported present")
+	}
+}
