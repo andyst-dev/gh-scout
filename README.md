@@ -197,6 +197,7 @@ GitHub user (which needs a token). Anonymous use of `prs` therefore requires
 | `--days` | `30` | drop PRs not updated within this many days |
 | `--max` | `50` | total pull requests examined |
 | `--format` | `markdown` | `markdown` or `json` |
+| `--delta` | | compare with the previous `--delta` run and show only what changed |
 | `--token` | | GitHub token (defaults to `GITHUB_TOKEN`) |
 | `--version` | | print version and exit |
 
@@ -255,6 +256,15 @@ requests; when they do, the report ends with a line saying how many were hidden
 and why (`N open pull request(s) not shown (X older than --days, Y beyond --max)`),
 so a short list is never mistaken for the whole set. Raise the flags to see them.
 The same counts are on the JSON output as `hidden_by_days` and `hidden_by_max`.
+
+**Delta (`--delta`).** Each `--delta` run saves a snapshot
+(`~/.cache/gh-scout/state.json`) and, on the next one, reports only what changed:
+a new pull request, one that became `up to you` (or went back to waiting on
+others), a newer response, a status move, and anything that left the open list -
+confirmed as merged or closed through the API rather than assumed. The first
+`--delta` has nothing to compare, so it prints the full report and saves the
+snapshot; only `--delta` runs save it. This is the cheap repeated check: three
+lines that moved instead of the whole list.
 
 A sample run:
 

@@ -11,6 +11,9 @@ import (
 // author, made after the author's last push.
 type Response struct {
 	Author string
+	// At is when the reply arrived, kept so a delta can tell a newer reply from
+	// one already seen.
+	At time.Time
 	// Age describes how long ago the reply arrived, e.g. "2d ago".
 	Age string
 }
@@ -32,7 +35,7 @@ func NewestResponse(author string, lastPush, now time.Time, acts []github.Activi
 	if !ok {
 		return nil
 	}
-	return &Response{Author: best.Login, Age: ageString(now.Sub(best.At))}
+	return &Response{Author: best.Login, At: best.At, Age: ageString(now.Sub(best.At))}
 }
 
 // lastActivity returns the author's own newest action: their last push or any

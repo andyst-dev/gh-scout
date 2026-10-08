@@ -20,6 +20,7 @@ import (
 	"github.com/andyst-dev/gh-scout/internal/prs"
 	"github.com/andyst-dev/gh-scout/internal/report"
 	"github.com/andyst-dev/gh-scout/internal/scout"
+	"github.com/andyst-dev/gh-scout/internal/state"
 )
 
 var version = "dev"
@@ -152,6 +153,7 @@ func runPRs(args []string, stdout *os.File) error {
 		days    = fs.Int("days", 30, "drop pull requests not updated within this many days")
 		max     = fs.Int("max", 50, "total pull requests to examine")
 		format  = fs.String("format", "markdown", "output format: markdown or json")
+		delta   = fs.Bool("delta", false, "compare with the previous --delta run and show only what changed")
 		token   = fs.String("token", "", "GitHub token (defaults to GITHUB_TOKEN)")
 		showVer = fs.Bool("version", false, "print version and exit")
 	)
@@ -190,12 +192,48 @@ func runPRs(args []string, stdout *os.File) error {
 		_, _ = fmt.Fprintln(os.Stderr)
 	}
 
-	out, err := prs.Render(rep, report.Kind(*format))
+	kind := report.Kind(*format)
+
+	if *delta {
+		return runDelta(stdout, client, rep, kind, *format)
+	}
+
+	out, err := prs.Render(rep, kind)
 	if err != nil {
 		return err
 	}
 	_, err = stdout.Write(out)
 	return err
+}
+
+// runDelta prints only what changed since the previous --delta run. On the
+// first run there is nothing to compare, so it prints the full report and saves
+// a snapshot for next time.
+func runDelta(stdout *os.File, client *github.Client, rep *prs.Report, kind report.Kind, format string) error {
+	prev, hasPrev, err := state.Load()
+	if err != nil {
+		return err
+	}
+	var out []byte
+	if hasPrev {
+		d := prs.Diff(rep, prev, func(repo string, number int) (bool, bool, error) {
+			return client.PullLifecycle(context.Background(), repo, number)
+		})
+		if out, err = prs.RenderDelta(d, kind); err != nil {
+			return err
+		}
+	} else {
+		if out, err = prs.Render(rep, kind); err != nil {
+			return err
+		}
+		if format != "json" && isTerminal(os.Stderr) {
+			_, _ = fmt.Fprintln(os.Stderr, "no previous snapshot: showing everything, and saving one for the next --delta run")
+		}
+	}
+	if _, err := stdout.Write(out); err != nil {
+		return err
+	}
+	return state.Save(prs.Snapshot(rep))
 }
 
 func prsLegend() {

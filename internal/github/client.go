@@ -237,6 +237,31 @@ func (c *Client) FileContentOn(ctx context.Context, repo, path, ref string) (str
 	return raw.Content, true
 }
 
+// PullLifecycle reports whether a pull request has been merged or closed, so a
+// delta can explain one that left the open list. A 404 (deleted repository)
+// reads as neither.
+func (c *Client) PullLifecycle(ctx context.Context, repo string, number int) (merged, closed bool, err error) {
+	res, err := c.get(ctx, fmt.Sprintf("%s/repos/%s/pulls/%d", c.baseURL, repo, number))
+	if err != nil {
+		return false, false, err
+	}
+	defer func() { _ = res.Body.Close() }()
+	if res.StatusCode == http.StatusNotFound {
+		return false, false, nil
+	}
+	if err := checkStatus(res); err != nil {
+		return false, false, err
+	}
+	var raw struct {
+		State    string `json:"state"`
+		MergedAt any    `json:"merged_at"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&raw); err != nil {
+		return false, false, fmt.Errorf("decode GitHub response: %w", err)
+	}
+	return raw.MergedAt != nil, raw.State == "closed", nil
+}
+
 // escapePath percent-escapes each segment of a repository path, leaving the
 // slashes that separate them.
 func escapePath(path string) string {
