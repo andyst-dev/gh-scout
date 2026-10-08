@@ -152,6 +152,11 @@ gh-scout --rules-file rules.json acme/widgets
 Valid thresholds are 0-100. `--min-score` still applies on top of the rules'
 ready threshold.
 
+- a merged PR that referenced the issue has **already implemented it** - the fix
+  shipped, the issue was just never closed. These are excluded (`Excluded`)
+  with "merged PR #N already implemented it" (a fix a merge closed would have
+  closed the issue itself; both signals then agree).
+
 ### Rules reference
 
 A rules file holds two things: the `ready` threshold and the point deltas

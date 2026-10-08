@@ -20,12 +20,15 @@ type Issue struct {
 }
 
 // PullRequest is the subset of a GitHub pull request needed to detect that an
-// issue is already being worked on.
+// issue is already being worked on (open PR) or already shipped (merged PR).
 type PullRequest struct {
 	Number int
 	Title  string
 	Body   string
 	URL    string
+	// Merged is true only for pull requests that actually merged (closed PRs
+	// without a merge leave the issue open work).
+	Merged bool
 }
 
 // PRRef is one of a user's open pull requests as found by the search endpoint.
@@ -75,4 +78,7 @@ type IssueLister interface {
 	Issues(ctx context.Context, repo string) ([]Issue, error)
 	// OpenPullRequests returns the open pull requests of a repository.
 	OpenPullRequests(ctx context.Context, repo string) ([]PullRequest, error)
+	// MergedPullRequests returns recent closed pull requests that merged,
+	// newest first, so an issue a merged PR already implemented can be dropped.
+	MergedPullRequests(ctx context.Context, repo string) ([]PullRequest, error)
 }

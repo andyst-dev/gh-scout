@@ -75,6 +75,23 @@ func TestClientPullRequests(t *testing.T) {
 	}
 }
 
+func TestClientMergedPullRequests(t *testing.T) {
+	body := `[
+	  {"number": 8, "title": "merged one", "body": "Fixes #1", "html_url": "https://x/8", "merged_at": "2026-01-01T00:00:00Z"},
+	  {"number": 9, "title": "closed unmerged", "body": "Fixes #2", "html_url": "https://x/9", "merged_at": null}
+	]`
+	c, srv := newTestClient(t, "/pulls", true, http.StatusOK, body)
+	defer srv.Close()
+
+	prs, err := c.MergedPullRequests(context.Background(), "acme/widgets")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(prs) != 1 || prs[0].Number != 8 || prs[0].Body != "Fixes #1" || !prs[0].Merged {
+		t.Fatalf("decode mismatch (must drop the closed-unmerged PR): %+v", prs)
+	}
+}
+
 func TestClientRateLimit(t *testing.T) {
 	c, srv := newTestClient(t, "/issues", true, http.StatusTooManyRequests, `{}`)
 	defer srv.Close()

@@ -18,6 +18,7 @@ func newFixture() *scout.Report {
 			{Repository: "acme/widgets", Number: 41, Title: "Crash on empty config", Status: scout.StatusReady, Score: 82, Reason: "clear defect; has repro", URL: "https://x/41", CreatedAt: now},
 			{Repository: "acme/widgets", Number: 9, Title: "Meh", Status: scout.StatusUnclear, Score: 5},
 			{Repository: "acme/gadgets", Number: 3, Title: "Old bug", Status: scout.StatusAddressed, Reason: "open PR #12 already references it"},
+			{Repository: "acme/widgets", Number: 44, Title: "Shipped bug", Status: scout.StatusMerged, Reason: "merged PR #55 already implemented it"},
 		},
 	}
 }
@@ -33,7 +34,7 @@ func TestMarkdownWriter(t *testing.T) {
 	}
 	s := string(out)
 
-	for _, want := range []string{"# Contribution scouting", "## Ready targets", "#41", "acme/gadgets#3", "open PR #12"} {
+	for _, want := range []string{"# Contribution scouting", "## Ready targets", "#41", "acme/gadgets#3", "open PR #12", "acme/widgets#44", "merged PR #55"} {
 		if !strings.Contains(s, want) {
 			t.Errorf("markdown missing %q", want)
 		}
@@ -66,7 +67,7 @@ func TestJSONWriter(t *testing.T) {
 	if len(got.Repositories) != 2 || got.Ready[0].Number != 41 {
 		t.Fatalf("unexpected JSON payload: %+v", got)
 	}
-	if got.Summary.Examined != 3 || got.Summary.Ready != 1 {
+	if got.Summary.Examined != 4 || got.Summary.Ready != 1 {
 		t.Fatalf("summary wrong: %+v", got.Summary)
 	}
 }

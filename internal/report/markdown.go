@@ -66,6 +66,8 @@ func partition(cs []scout.Candidate) (ready, addressed, unclear []scout.Candidat
 			ready = append(ready, c)
 		case scout.StatusAddressed:
 			addressed = append(addressed, c)
+		case scout.StatusMerged:
+			addressed = append(addressed, c)
 		default:
 			unclear = append(unclear, c)
 		}

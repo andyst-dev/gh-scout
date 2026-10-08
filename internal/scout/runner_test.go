@@ -12,6 +12,7 @@ import (
 type fakeLister struct {
 	issues []github.Issue
 	prs    []github.PullRequest
+	merged []github.PullRequest
 }
 
 func (f *fakeLister) Issues(_ context.Context, _ string) ([]github.Issue, error) {
@@ -22,17 +23,25 @@ func (f *fakeLister) OpenPullRequests(_ context.Context, _ string) ([]github.Pul
 	return f.prs, nil
 }
 
+func (f *fakeLister) MergedPullRequests(_ context.Context, _ string) ([]github.PullRequest, error) {
+	return f.merged, nil
+}
+
 func TestRunnerStatuses(t *testing.T) {
 	now := time.Now()
 	l := &fakeLister{
 		issues: []github.Issue{
 			{Number: 1, Title: "Clear crash on empty config", Body: "Repro:\n```\nrun()\n```\nUnit test.\nexpects no panic.", Labels: []string{"bug"}, CreatedAt: now},
 			{Number: 2, Title: "Logs leak the auth token", Body: "Auth token printed on failure.\nUnit test: redact and log.", Labels: []string{"bug"}, CreatedAt: now},
-			{Number: 3, Title: "Meh", Body: "", CreatedAt: now},          // unclear
-			{Number: 4, Title: "Vague one", Body: "idk", CreatedAt: now}, // unclear
+			{Number: 3, Title: "Meh", Body: "", CreatedAt: now},                                          // unclear
+			{Number: 4, Title: "Vague one", Body: "idk", CreatedAt: now},                                 // unclear
+			{Number: 5, Title: "Shipped crash", Body: "Repro.", Labels: []string{"bug"}, CreatedAt: now}, // fixed by a merged PR
 		},
 		prs: []github.PullRequest{
 			{Number: 100, Title: "Redact token", Body: "Fixes #2"},
+		},
+		merged: []github.PullRequest{
+			{Number: 200, Title: "fix crash", Body: "Fixes #5", Merged: true},
 		},
 	}
 
@@ -58,6 +67,9 @@ func TestRunnerStatuses(t *testing.T) {
 	}
 	if had := byNum[4]; had.Status != StatusUnclear {
 		t.Fatalf("issue #4 expected %s got %s", StatusUnclear, had.Status)
+	}
+	if had := byNum[5]; had.Status != StatusMerged {
+		t.Fatalf("issue #5 expected %s got %s (reason %q)", StatusMerged, had.Status, had.Reason)
 	}
 	if byNum[1].Score <= byNum[4].Score {
 		t.Fatalf("issue #1 (score %d) should outrank #4 (score %d)", byNum[1].Score, byNum[4].Score)

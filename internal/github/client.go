@@ -89,6 +89,50 @@ func (c *Client) OpenPullRequests(ctx context.Context, repo string) ([]PullReque
 	return prs, nil
 }
 
+// mergedPRCap bounds how many recent closed pull requests of a repository are
+// scanned for a merged reference to an issue. A fix old enough to fall outside
+// this many recent closed PRs will almost always have closed its own issue.
+const mergedPRCap = 200
+
+// MergedPullRequests returns the recent closed pull requests that merged,
+// newest by update first. Closed-without-merge PRs are skipped: they leave the
+// issue open work. The scout uses these to drop issues a merged PR already
+// implemented but that were never closed (the #2200 / #2202 lesson).
+func (c *Client) MergedPullRequests(ctx context.Context, repo string) ([]PullRequest, error) {
+	u := fmt.Sprintf(
+		"%s/repos/%s/pulls?state=closed&sort=updated&direction=desc&per_page=100",
+		c.baseURL, repo,
+	)
+	var prs []PullRequest
+	seen := 0
+	for {
+		items, next, err := c.getPage(ctx, u)
+		if err != nil {
+			return nil, err
+		}
+		for _, it := range items {
+			if seen >= mergedPRCap {
+				return prs, nil
+			}
+			seen++
+			if str(it["merged_at"]) == "" {
+				continue
+			}
+			prs = append(prs, PullRequest{
+				Number: intNum(it["number"]),
+				Title:  str(it["title"]),
+				Body:   str(it["body"]),
+				URL:    str(it["html_url"]),
+				Merged: true,
+			})
+		}
+		if next == "" {
+			return prs, nil
+		}
+		u = next
+	}
+}
+
 // CurrentUser returns the login of the authenticated GitHub user. It requires
 // a token; anonymous requests cannot identify a user.
 func (c *Client) CurrentUser(ctx context.Context) (string, error) {

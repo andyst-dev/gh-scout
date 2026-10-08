@@ -34,10 +34,15 @@ func (r *Runner) Run(ctx context.Context, repos []string, opts Options) (*Report
 		if err != nil {
 			return nil, err
 		}
+		merged, err := r.lister.MergedPullRequests(ctx, repo)
+		if err != nil {
+			return nil, err
+		}
 
 		matcher := NewMatcher(prs)
+		mergedMatcher := NewMatcher(merged)
 		for _, issue := range filterIssues(issues, opts) {
-			rep.Candidates = append(rep.Candidates, r.evaluate(repo, issue, matcher, opts))
+			rep.Candidates = append(rep.Candidates, r.evaluate(repo, issue, matcher, mergedMatcher, opts))
 		}
 	}
 
@@ -48,7 +53,7 @@ func (r *Runner) Run(ctx context.Context, repos []string, opts Options) (*Report
 }
 
 // evaluate turns a single issue into a candidate.
-func (r *Runner) evaluate(repo string, issue github.Issue, m *Matcher, opts Options) Candidate {
+func (r *Runner) evaluate(repo string, issue github.Issue, m *Matcher, merged *Matcher, opts Options) Candidate {
 	rules := appliedRules(opts.Rules)
 	c := Candidate{
 		Repository: repo,
@@ -63,6 +68,15 @@ func (r *Runner) evaluate(repo string, issue github.Issue, m *Matcher, opts Opti
 	if pr, ok := m.Match(issue); ok {
 		c.Status = StatusAddressed
 		c.Reason = "open PR #" + strconv.Itoa(pr.Number) + " already references it"
+		return c
+	}
+
+	// A merged PR references the issue: the fix already shipped, the issue just
+	// was never closed. Offering it as a fresh target is a false positive, so
+	// exclude it too (the #2200 / #2202 lesson).
+	if pr, ok := merged.Match(issue); ok {
+		c.Status = StatusMerged
+		c.Reason = "merged PR #" + strconv.Itoa(pr.Number) + " already implemented it"
 		return c
 	}
 

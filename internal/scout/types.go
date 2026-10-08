@@ -19,6 +19,9 @@ const (
 	// StatusAddressed marks an issue an open pull request already references,
 	// and therefore is excluded from the ready set.
 	StatusAddressed Status = "addressed"
+	// StatusMerged marks an issue a merged pull request already references: the
+	// fix shipped, the issue was just never closed, so it is excluded too.
+	StatusMerged Status = "merged"
 	// StatusUnclear marks an issue with no contact with a PR but too little
 	// signal to confidently call it fixable.
 	StatusUnclear Status = "unclear"
