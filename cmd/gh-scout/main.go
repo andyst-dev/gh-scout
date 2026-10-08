@@ -150,8 +150,8 @@ func runPRs(args []string, stdout *os.File) error {
 	var (
 		user    = fs.String("user", "", "pull request author to scout (auto-detected from token if empty)")
 		repos   = fs.String("repos", "", "comma-separated owner/name filter")
-		days    = fs.Int("days", 30, "drop pull requests not updated within this many days")
-		max     = fs.Int("max", 50, "total pull requests to examine")
+		days    = fs.Int("days", 0, "drop pull requests not updated within this many days (0 disables)")
+		max     = fs.Int("max", 0, "total pull requests to examine (0 disables)")
 		format  = fs.String("format", "markdown", "output format: markdown or json")
 		delta   = fs.Bool("delta", false, "compare with the previous --delta run and show only what changed")
 		token   = fs.String("token", "", "GitHub token (defaults to GITHUB_TOKEN)")

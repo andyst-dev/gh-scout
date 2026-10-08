@@ -194,8 +194,8 @@ GitHub user (which needs a token). Anonymous use of `prs` therefore requires
 |---|---|---|
 | `--user` | | PR author to scout (auto-detected from the token if empty) |
 | `--repos` | | comma-separated `owner/name` filter |
-| `--days` | `30` | drop PRs not updated within this many days |
-| `--max` | `50` | total pull requests examined |
+| `--days` | `0` | drop PRs not updated within this many days (0 disables) |
+| `--max` | `0` | total pull requests examined (0 disables) |
 | `--format` | `markdown` | `markdown` or `json` |
 | `--delta` | | compare with the previous `--delta` run and show only what changed |
 | `--token` | | GitHub token (defaults to `GITHUB_TOKEN`) |
@@ -251,11 +251,12 @@ request against its base for the "already landed" shape, and adds an advisory
 It is a hint, not a verdict: it explains why a rebase may be wasted, so read the
 base before starting. API errors stay silent, so it never cries wolf.
 
-**No silent truncation.** The `--days` window and the `--max` cap drop open pull
-requests; when they do, the report ends with a line saying how many were hidden
-and why (`N open pull request(s) not shown (X older than --days, Y beyond --max)`),
-so a short list is never mistaken for the whole set. Raise the flags to see them.
-The same counts are on the JSON output as `hidden_by_days` and `hidden_by_max`.
+**No silent truncation.** By default nothing is hidden: every open pull request
+is reported (`--days` and `--max` are off at `0`). Narrow a run with those flags
+and the report ends with a line saying how many were hidden and why (`N open pull
+request(s) not shown (X older than --days, Y beyond --max)`), so a short list is
+never mistaken for the whole set. The same counts are on the JSON output as
+`hidden_by_days` and `hidden_by_max`.
 
 **Delta (`--delta`).** Each `--delta` run saves a snapshot
 (`~/.cache/gh-scout/state.json`) and, on the next one, reports only what changed:
