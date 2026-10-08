@@ -33,15 +33,17 @@ type Action struct {
 // activity (your push or your last comment). Pure (no I/O), so table-testable.
 func Classify(author string, lastActivity time.Time, status string, rs github.ReviewState) Action {
 	var reasons []string
+
+	// A branch that conflicts or trails its base blocks you before anything.
 	switch status {
 	case "conflicts":
 		reasons = append(reasons, "rebase: the branch conflicts with its base")
 	case "behind base":
 		reasons = append(reasons, "rebase: the branch is behind its base")
 	}
-	if rs.Decision == "CHANGES_REQUESTED" {
-		reasons = append(reasons, "change requested in review")
-	}
+
+	// An open review thread awaits you when someone else's newest comment
+	// post-dates your own last activity (your push or your last comment).
 	for _, t := range rs.OpenThreads {
 		if t.LastAuthor == "" || t.LastAuthor == author {
 			continue
@@ -55,6 +57,25 @@ func Classify(author string, lastActivity time.Time, status string, rs github.Re
 	if len(reasons) > 0 {
 		return Action{Owner: OwnerYou, Reasons: reasons}
 	}
+
+	// CHANGES_REQUESTED keeps the ball on you only while the change is still
+	// open: an outstanding review thread, or a freshly-requested change you
+	// have not acted on. Once every thread is resolved and the requesting
+	// review predates your last activity, the changes are addressed and the
+	// verdict simply awaits the reviewer's re-approval.
+	if rs.Decision == "CHANGES_REQUESTED" {
+		if len(rs.OpenThreads) > 0 {
+			return Action{
+				Owner:   OwnerYou,
+				Reasons: []string{"change requested in review: resolve the outstanding review thread(s)"},
+			}
+		}
+		if rs.LastReview.State == "CHANGES_REQUESTED" && rs.LastReview.At.After(lastActivity) {
+			return Action{Owner: OwnerYou, Reasons: []string{"changes requested in review"}}
+		}
+		return Action{Owner: OwnerThem, Waiting: "reviewer to re-approve the addressed changes"}
+	}
+
 	return Action{Owner: OwnerThem, Waiting: waitingOn(status, rs.Decision)}
 }
 

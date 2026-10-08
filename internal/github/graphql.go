@@ -19,6 +19,18 @@ type ReviewState struct {
 	Decision string
 	// OpenThreads are the review threads that were never resolved.
 	OpenThreads []Thread
+	// LastReview is the pull request's most recent submitted review, used to
+	// tell an answered-and-addressed CHANGES_REQUESTED (the reviewer merely has
+	// to re-approve) from a freshly requested change the author has not acted
+	// on yet.
+	LastReview ReviewView
+}
+
+// ReviewView is one submitted review reduced to the state and the time it was
+// submitted.
+type ReviewView struct {
+	State string
+	At    time.Time
 }
 
 // Thread is one unresolved review thread reduced to what gh-scout needs: where
@@ -48,7 +60,7 @@ func (t Thread) Anchor() string {
 // reviewStateQuery fetches the review verdict and the open review threads of
 // one pull request. Threads are resolved only by a human click, so the query
 // returns every thread and lets the caller filter on isResolved.
-const reviewStateQuery = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewDecision reviewThreads(first:100){nodes{isResolved path line comments(last:1){nodes{author{login} createdAt}}}}}}}`
+const reviewStateQuery = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewDecision reviewThreads(first:100){nodes{isResolved path line comments(last:1){nodes{author{login} createdAt}}}} reviews(last:1){nodes{state submittedAt}}}}}`
 
 // ReviewState fetches the review decision and the unresolved review threads of
 // one pull request via the GraphQL API.
@@ -86,6 +98,12 @@ func (c *Client) ReviewState(ctx context.Context, repo string, number int) (Revi
 							} `json:"comments"`
 						} `json:"nodes"`
 					} `json:"reviewThreads"`
+					Reviews struct {
+						Nodes []struct {
+							State       string `json:"state"`
+							SubmittedAt string `json:"submittedAt"`
+						} `json:"nodes"`
+					} `json:"reviews"`
 				} `json:"pullRequest"`
 			} `json:"repository"`
 		} `json:"data"`
@@ -101,6 +119,11 @@ func (c *Client) ReviewState(ctx context.Context, repo string, number int) (Revi
 	}
 
 	rs := ReviewState{Decision: raw.Data.Repository.PullRequest.ReviewDecision}
+	if n := raw.Data.Repository.PullRequest.Reviews.Nodes; len(n) > 0 {
+		last := n[len(n)-1]
+		rs.LastReview.State = last.State
+		rs.LastReview.At, _ = time.Parse(time.RFC3339, last.SubmittedAt)
+	}
 	for _, n := range raw.Data.Repository.PullRequest.ReviewThreads.Nodes {
 		if n.IsResolved {
 			continue

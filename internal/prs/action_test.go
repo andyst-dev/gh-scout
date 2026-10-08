@@ -25,7 +25,10 @@ func TestClassify(t *testing.T) {
 	}{
 		{name: "conflicts", status: "conflicts", wantOwner: OwnerYou, wantReasons: 1},
 		{name: "behind base", status: "behind base", wantOwner: OwnerYou, wantReasons: 1},
-		{name: "changes requested", status: "clean", rs: github.ReviewState{Decision: "CHANGES_REQUESTED"}, wantOwner: OwnerYou, wantReasons: 1},
+		{name: "changes requested with outstanding thread", status: "clean", rs: github.ReviewState{Decision: "CHANGES_REQUESTED", OpenThreads: []github.Thread{mk("bob", before)}}, wantOwner: OwnerYou, wantReasons: 1},
+		{name: "changes requested freshly, no thread", status: "clean", rs: github.ReviewState{Decision: "CHANGES_REQUESTED", LastReview: github.ReviewView{State: "CHANGES_REQUESTED", At: after}}, wantOwner: OwnerYou, wantReasons: 1},
+		{name: "changes requested addressed, threads resolved, old review", status: "clean", rs: github.ReviewState{Decision: "CHANGES_REQUESTED"}, wantOwner: OwnerThem, wantWaiting: "reviewer to re-approve the addressed changes"},
+		{name: "changes requested addressed, approved review last", status: "clean", rs: github.ReviewState{Decision: "CHANGES_REQUESTED", LastReview: github.ReviewView{State: "APPROVED", At: after}}, wantOwner: OwnerThem, wantWaiting: "reviewer to re-approve the addressed changes"},
 		{name: "open thread awaiting", status: "clean", rs: github.ReviewState{OpenThreads: []github.Thread{mk("bob", after)}}, wantOwner: OwnerYou, wantReasons: 1},
 		{name: "thread awaits but author replied after", status: "clean", rs: github.ReviewState{OpenThreads: []github.Thread{mk("bob", before)}}, wantOwner: OwnerThem, wantWaiting: "review"},
 		{name: "own thread ignored", status: "clean", rs: github.ReviewState{OpenThreads: []github.Thread{mk("andy", after)}}, wantOwner: OwnerThem, wantWaiting: "review"},
@@ -60,12 +63,16 @@ func TestClassifyStacksReasonsByPriority(t *testing.T) {
 	if a.Owner != OwnerYou {
 		t.Fatalf("owner=%q", a.Owner)
 	}
-	// rebase, then the review verdict, then the newest thread.
-	if len(a.Reasons) != 3 {
-		t.Fatalf("want 3 stacked reasons, got %v", a.Reasons)
+	// rebase, then the newest awaiting thread. CHANGES_REQUESTED is implied by
+	// the awaiting thread and does not add a third, less specific reason.
+	if len(a.Reasons) != 2 {
+		t.Fatalf("want 2 stacked reasons, got %v", a.Reasons)
 	}
 	if a.Reasons[0] != "rebase: the branch conflicts with its base" {
 		t.Fatalf("rebase must lead, got %v", a.Reasons)
+	}
+	if a.Reasons[1] != "reply in a.ts:2 (@bob)" {
+		t.Fatalf("thread reply must follow, got %v", a.Reasons)
 	}
 }
 

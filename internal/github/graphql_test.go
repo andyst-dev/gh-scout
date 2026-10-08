@@ -15,7 +15,7 @@ func TestReviewState(t *testing.T) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"data":{"repository":{"pullRequest":{"reviewDecision":"CHANGES_REQUESTED","reviewThreads":{"nodes":[
+		_, _ = w.Write([]byte(`{"data":{"repository":{"pullRequest":{"reviewDecision":"CHANGES_REQUESTED","reviews":{"nodes":[{"state":"APPROVED","submittedAt":"2024-01-09T00:00:00Z"}]},"reviewThreads":{"nodes":[
 			{"isResolved":false,"path":"a.ts","line":3,"comments":{"nodes":[{"author":{"login":"bot"},"createdAt":"2024-01-05T00:00:00Z"}]}},
 			{"isResolved":true,"path":"b.ts","line":9,"comments":{"nodes":[{"author":{"login":"bot"},"createdAt":"2024-01-04T00:00:00Z"}]}},
 			{"isResolved":false,"path":"c.ts","line":null,"comments":{"nodes":[{"author":{"login":"bot"},"createdAt":"2024-01-06T00:00:00Z"}]}}
@@ -29,6 +29,9 @@ func TestReviewState(t *testing.T) {
 	}
 	if rs.Decision != "CHANGES_REQUESTED" {
 		t.Fatalf("decision=%q", rs.Decision)
+	}
+	if rs.LastReview.State != "APPROVED" || !rs.LastReview.At.Equal(time.Date(2024, 1, 9, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("lastReview=%+v", rs.LastReview)
 	}
 	if len(rs.OpenThreads) != 2 {
 		t.Fatalf("open threads=%d want 2 (resolved filtered), got %+v", len(rs.OpenThreads), rs.OpenThreads)

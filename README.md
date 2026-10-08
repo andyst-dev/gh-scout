@@ -185,7 +185,9 @@ A verdict from three signals GitHub already computes - no guesses:
 - an **open review thread** whose newest comment is someone else's and is newer
   than your last activity -> reply in that thread (the anchor is named, e.g.
   `reply in libs/app.ts:12 (@alice)`);
-- `reviewDecision` is `CHANGES_REQUESTED` -> changes are due from you;
+- `reviewDecision` is `CHANGES_REQUESTED` **while the change is still open** -
+  an outstanding review thread, or a freshly-requested change you have not
+  acted on (the requesting review is newer than your last activity).
 
 Everything else is `Waiting on others`: reviewers, required checks, or a pending
 merge. A pull request can carry a conflict *and* a requested change; reasons
@@ -193,6 +195,9 @@ are listed in that priority order. GitHub only marks a thread *resolved* when
 someone clicks Resolve, so a thread you handled but never resolved can
 (correctly) keep `reviewDecision` at `CHANGES_REQUESTED` and keep the PR under
 "Up to you" until you resolve it - the scout tells you to resolve those threads.
+Once every thread is resolved and the requesting review predates your last
+activity, the changes are addressed and the PR moves to `Waiting on others`: it only
+awaits the reviewer's re-approval.
 
 **PR status** (derived from GitHub's merge state), each with what it means for you:
 
