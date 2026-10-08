@@ -3,7 +3,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 FONT = "/System/Library/Fonts/SFNSMono.ttf"
 BG=(19,23,26); TITLE=(35,40,48); FG=(230,237,243)
-GREEN=(63,185,80); BLUE=(88,166,255); RED=(248,81,73); GRAY=(139,148,158)
+GREEN=(63,185,80); BLUE=(88,166,255); RED=(248,81,73); GRAY=(139,148,158); YELLOW=(214,175,90)
 
 def textw(d, t, font): return d.textlength(t, font=font)
 
@@ -71,3 +71,24 @@ session=[
  line(FG,"_12 issue(s) examined, 4 ready._"),
 ]
 render("assets/session.png", session, fs=19, pad=26, tab_h=46, title="gh-scout · contribution issues without duplicate work")
+
+# PR scout report
+prs=[
+ [ (GREEN,"❯ "),(GREEN,"gh-scout prs") ],
+ [ (BG,"") ],
+ line(FG,"# PR scout for alex · 2026-10-08 09:00"),
+ [ (BG,"") ],
+ line(GREEN,"## Up to you (2)"),
+ [ (BG,"") ],
+ [ (FG,"- acme/widgets #17 · behind base | "),(YELLOW,"rebase: the branch is behind its base") ],
+ line(GRAY,"  - https://github.com/acme/widgets/pull/17"),
+ [ (FG,"- acme/gadgets #9 · clean | "),(YELLOW,"reply in libs/app.ts:12 (@alice)") ],
+ line(GRAY,"  - https://github.com/acme/gadgets/pull/9"),
+ [ (BG,"") ],
+ line(FG,"## Waiting on others (2)"),
+ [ (BG,"") ],
+ [ (FG,"- acme/widgets #21 · up to date | "),(GRAY,"review (response: @bob 2d ago)") ],
+ line(GRAY,"  - https://github.com/acme/widgets/pull/21"),
+ [ (FG,"- acme/gadgets #4 · blocked | "),(GRAY,"reviewer to re-approve the addressed changes") ],
+]
+render("docs/prs-scout.png", prs, fs=19, pad=26, tab_h=46, title="gh-scout prs")
