@@ -63,15 +63,43 @@ go install github.com/andyst-dev/gh-scout/cmd/gh-scout@latest
 
 No external dependencies; the standard library is all it needs.
 
+## Authentication
+
+`gh-scout` is **read-only** and never posts anything, so it only needs to
+*read* issues and pull requests - a read-only token is enough.
+
+The token comes from `--token` when given, otherwise from the **`GITHUB_TOKEN`**
+environment variable:
+
+```sh
+export GITHUB_TOKEN=...        # both commands then use it
+```
+
+- The **issue scout** (`gh-scout owner/repo`) works without a token, but the
+  anonymous quota (60 req/h) runs out after one or two repositories; a token
+  raises it to 5000 req/h.
+- The **PR scout** (`gh-scout prs`) **requires** a token even with `--user`:
+  its verdict reads GitHub's GraphQL (`reviewDecision` and review threads), and
+  the author is auto-detected from the authenticated user.
+
+No token handy? If the GitHub CLI is logged in, reuse its:
+
+```sh
+export GITHUB_TOKEN=$(gh auth token)
+```
+
+Otherwise create a fine-grained personal access token with *read* access to
+Issues and Pull requests (a classic `repo` or `public_repo` token also works).
+
 ## Usage
 
 ```sh
 gh-scout [flags] owner/repo [owner/repo ...]
 ```
 
-A GitHub token is read from `GITHUB_TOKEN` to raise the API quota. Anonymous
-use works but rate-limits quickly. Run `gh-scout --help` for the live flag
-reference.
+The GitHub token is read from `--token` or `GITHUB_TOKEN` - see
+[Authentication](#authentication). Anonymous use works but rate-limits quickly.
+Run `gh-scout --help` for the live flag reference.
 
 | Flag | Default | Meaning |
 |---|---|---|
@@ -152,7 +180,7 @@ whether the branch is up to date with its base, and - the headline - who owes
 the next move (`Up to you` vs `Waiting on others`). It never posts anything; like
 the issue scout it is read-only. The verdict reads GitHub's GraphQL
 `reviewDecision` and open review threads, so `prs` needs a token even when
-`--user` is passed.
+`--user` is passed (see [Authentication](#authentication)).
 
 ```sh
 gh-scout prs [flags]
