@@ -266,6 +266,10 @@ confirmed as merged or closed through the API rather than assumed. The first
 snapshot; only `--delta` runs save it. This is the cheap repeated check: three
 lines that moved instead of the whole list.
 
+Use the same filters (or none) from one `--delta` to the next: the snapshot
+records exactly what the last `--delta` scanned, so narrowing a run with
+`--repos`, `--days` or `--max` makes a later wider run report the rest as new.
+
 A sample run:
 
 ![PR scout output](docs/prs-scout.png)

@@ -127,7 +127,7 @@ func Diff(rep *Report, prev state.Snapshot, lookup lifecycle) *DeltaReport {
 		if !ok {
 			continue
 		}
-		note := "no longer listed (merged, closed, or outside the --days / --max window)"
+		note := "no longer listed (merged, closed, or filtered out by --days / --max / --repos)"
 		if lookup != nil {
 			merged, closed, err := lookup(repo, number)
 			switch {
@@ -138,7 +138,7 @@ func Diff(rep *Report, prev state.Snapshot, lookup lifecycle) *DeltaReport {
 			case closed:
 				note = "closed without merge"
 			default:
-				note = "still open, now outside the --days / --max window"
+				note = "still open, but filtered out by --days / --max / --repos"
 			}
 		}
 		d.Changes = append(d.Changes, Change{

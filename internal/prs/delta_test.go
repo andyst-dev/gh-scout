@@ -161,6 +161,33 @@ func TestRenderDelta(t *testing.T) {
 	}
 }
 
+func TestDiffVanishedStillOpen(t *testing.T) {
+	now := time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC)
+	prev := state.Snapshot{SavedAt: now, PRs: map[string]state.Entry{
+		"acme/widgets#7": {Status: "up to date", Owner: OwnerThem, Title: "Old"},
+	}}
+	d := Diff(&Report{GeneratedAt: now, User: "andy"}, prev, func(string, int) (bool, bool, error) {
+		return false, false, nil // the lookup says it is still open
+	})
+	if len(d.Changes) != 1 || !hasNote(d.Changes[0].Notes, "still open, but filtered out") {
+		t.Fatalf("want a still-open note, got %+v", d.Changes)
+	}
+}
+
+func TestRenderDeltaNothing(t *testing.T) {
+	now := time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC)
+	d := &DeltaReport{User: "andy", GeneratedAt: now, PrevSavedAt: now.Add(-time.Hour), Waiting: 48, Total: 48}
+	md, err := RenderDelta(d, report.KindMarkdown)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"- nothing", "0 change(s) · 0 up to you · 48 waiting · 48 seen."} {
+		if !strings.Contains(string(md), want) {
+			t.Errorf("markdown missing %q\n%s", want, md)
+		}
+	}
+}
+
 func TestRenderDeltaUnknownKind(t *testing.T) {
 	if _, err := RenderDelta(&DeltaReport{}, report.Kind("xlsx")); err == nil {
 		t.Fatal("want an error for an unknown kind")
