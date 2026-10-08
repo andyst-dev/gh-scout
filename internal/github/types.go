@@ -55,6 +55,9 @@ type PRDetail struct {
 type FileChange struct {
 	Path   string
 	Status string
+	// Patch is the unified diff hunks GitHub returns for the file, or "" when
+	// the diff is too large for the REST payload to carry.
+	Patch string
 }
 
 // Activity is one comment or review left by a user on a pull request.

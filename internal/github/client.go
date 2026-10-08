@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -169,7 +170,7 @@ func (c *Client) PullFiles(ctx context.Context, repo string, number int) ([]File
 	files := make([]FileChange, 0, len(raw))
 	for _, it := range raw {
 		if path := str(it["filename"]); path != "" {
-			files = append(files, FileChange{Path: path, Status: str(it["status"])})
+			files = append(files, FileChange{Path: path, Status: str(it["status"]), Patch: str(it["patch"])})
 		}
 	}
 	return files, nil
@@ -198,6 +199,42 @@ func (c *Client) FileExistsOn(ctx context.Context, repo, path, ref string) (bool
 	default:
 		return false, checkStatus(res)
 	}
+}
+
+// FileContentOn returns the text of path on ref, and whether it could be read.
+// A 404, a directory or an over-large blob yields "", false: callers treat it
+// as inconclusive, never as absent.
+func (c *Client) FileContentOn(ctx context.Context, repo, path, ref string) (string, bool) {
+	u, err := url.Parse(c.baseURL + "/repos/" + repo + "/contents/" + escapePath(path))
+	if err != nil {
+		return "", false
+	}
+	q := u.Query()
+	q.Set("ref", ref)
+	u.RawQuery = q.Encode()
+	res, err := c.get(ctx, u.String())
+	if err != nil {
+		return "", false
+	}
+	defer func() { _ = res.Body.Close() }()
+	if res.StatusCode != http.StatusOK {
+		return "", false
+	}
+	var raw struct {
+		Content  string `json:"content"`
+		Encoding string `json:"encoding"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&raw); err != nil {
+		return "", false
+	}
+	if raw.Encoding == "base64" {
+		dec, err := base64.StdEncoding.DecodeString(strings.ReplaceAll(raw.Content, "\n", ""))
+		if err != nil {
+			return "", false
+		}
+		return string(dec), true
+	}
+	return raw.Content, true
 }
 
 // escapePath percent-escapes each segment of a repository path, leaving the

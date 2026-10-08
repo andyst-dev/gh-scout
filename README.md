@@ -238,11 +238,17 @@ awaits the reviewer's re-approval.
 | `unstable` | mergeable but some status checks are failing | look at the failing checks |
 | `evaluating` | GitHub has not computed a mergeable verdict yet | check again shortly |
 
-**Superseded hint.** When a branch conflicts with its base, the scout also
-checks whether a file the pull request modifies still exists on that base. If
-the base renamed or removed one, the change may already be there, so the scout
-adds an advisory `may be superseded: ...` line under that pull request. It is a
-hint, not a verdict - read the base before spending a rebase on it.
+**Superseded hint.** Before a rebase, the scout checks a conflicting pull
+request against its base for the "already landed" shape, and adds an advisory
+`may be superseded: ...` line under it when either holds:
+
+- a file the pull request **modifies no longer exists on the base** - the base
+  renamed or removed it, so the change may have been re-homed or merged there;
+- every line the pull request **adds already exists in that file on the base** -
+  the change is already merged.
+
+It is a hint, not a verdict: it explains why a rebase may be wasted, so read the
+base before starting. API errors stay silent, so it never cries wolf.
 
 A sample run:
 
