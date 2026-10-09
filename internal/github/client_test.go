@@ -186,6 +186,18 @@ func TestClientSearchPullRequests(t *testing.T) {
 	}
 }
 
+func TestClientMergedPRCount(t *testing.T) {
+	c, srv := newTestClient(t, "/search/issues", true, http.StatusOK, `{"total_count":12}`)
+	defer srv.Close()
+	n, err := c.MergedPRCount(context.Background(), "acme/widgets", "andy")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 12 {
+		t.Fatalf("got %d, want 12", n)
+	}
+}
+
 func TestClientPullRequest(t *testing.T) {
 	body := `{"mergeable":false,"mergeable_state":"dirty",
 		"head":{"sha":"abc123"},"base":{"ref":"main"},

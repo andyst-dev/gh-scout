@@ -283,6 +283,26 @@ A sample run:
 The same branding rule applies: the banner and a legend go to *stderr*, only
 when the output is not JSON and the terminal is interactive.
 
+## History (`gh-scout history`)
+
+The long-run counterpart to `prs`: how many pull requests an author has merged
+per repository (all time, via the search total). One request per repository,
+no paging:
+
+```
+$ gh-scout history chrisbenincasa/tunarr kodustech/kodus-ai superset-sh/superset
+# Merged by andy
+
+- chrisbenincasa/tunarr · 15
+- kodustech/kodus-ai · 12
+- superset-sh/superset · 4
+
+Total: 31
+```
+
+`--user` autodetects the author from the token like `prs`; `--format json`
+prints a machine-readable `{author, repos:[{repo, merged}], total}`.
+
 ## How it decides
 
 Each issue becomes a **candidate** with one of three statuses:

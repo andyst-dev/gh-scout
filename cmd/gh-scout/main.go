@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/andyst-dev/gh-scout/internal/github"
+	"github.com/andyst-dev/gh-scout/internal/history"
 	"github.com/andyst-dev/gh-scout/internal/prs"
 	"github.com/andyst-dev/gh-scout/internal/report"
 	"github.com/andyst-dev/gh-scout/internal/scout"
@@ -49,6 +50,10 @@ func run(args []string, stdout *os.File) error {
 	// The prs subcommand has its own flag set and pipeline.
 	if len(args) > 0 && args[0] == "prs" {
 		return runPRs(args[1:], stdout)
+	}
+	// history reports merged pull request counts by repository.
+	if len(args) > 0 && args[0] == "history" {
+		return runHistory(args[1:], stdout)
 	}
 
 	fs := flag.NewFlagSet("gh-scout", flag.ContinueOnError)
@@ -137,6 +142,63 @@ func run(args []string, stdout *os.File) error {
 	out, err := writer.Write(rep)
 	if err != nil {
 		return err
+	}
+	_, err = stdout.Write(out)
+	return err
+}
+
+// runHistory reports how many pull requests an author has merged per
+// repository. The search total is exact and needs no paging.
+func runHistory(args []string, stdout *os.File) error {
+	fs := flag.NewFlagSet("gh-scout history", flag.ContinueOnError)
+	var (
+		user    = fs.String("user", "", "pull request author to count (auto-detected from token if empty)")
+		token   = fs.String("token", "", "GitHub token (defaults to GITHUB_TOKEN)")
+		format  = fs.String("format", "markdown", "output format: markdown or json")
+		showVer = fs.Bool("version", false, "print version and exit")
+	)
+	fs.Usage = func() {
+		_, _ = fmt.Fprintln(os.Stderr, "  gh-scout history · merged pull request counts by repository")
+		_, _ = fmt.Fprintln(os.Stderr)
+		fs.PrintDefaults()
+	}
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *showVer {
+		_, _ = fmt.Fprintln(stdout, "gh-scout", version)
+		return nil
+	}
+	repos := fs.Args()
+	if len(repos) == 0 {
+		return errors.New("no repositories given (e.g. gh-scout history owner/name ...)")
+	}
+	for _, r := range repos {
+		if !strings.Contains(r, "/") {
+			return fmt.Errorf("repository %q must be owner/name", r)
+		}
+	}
+
+	client := github.New(*token)
+	author := *user
+	ctx := context.Background()
+	if author == "" {
+		var err error
+		if author, err = client.CurrentUser(ctx); err != nil {
+			return err
+		}
+	}
+	rep, err := history.Run(ctx, client, author, repos)
+	if err != nil {
+		return err
+	}
+	var out []byte
+	if *format == "json" {
+		if out, err = history.RenderJSON(rep); err != nil {
+			return err
+		}
+	} else {
+		out = history.RenderMarkdown(rep)
 	}
 	_, err = stdout.Write(out)
 	return err

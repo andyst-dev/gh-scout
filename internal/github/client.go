@@ -179,6 +179,20 @@ func (c *Client) SearchPullRequests(ctx context.Context, user string) ([]PRRef, 
 	return refs, nil
 }
 
+// MergedPRCount counts the merged pull requests authored by user in repo via
+// the search API (total_count only, no paging).
+func (c *Client) MergedPRCount(ctx context.Context, repo, user string) (int, error) {
+	q := url.QueryEscape("repo:" + repo + " author:" + user + " is:pr is:merged")
+	endpoint := fmt.Sprintf("/search/issues?q=%s&per_page=1", q)
+	var raw struct {
+		TotalCount int `json:"total_count"`
+	}
+	if err := c.getObject(ctx, endpoint, &raw); err != nil {
+		return 0, err
+	}
+	return raw.TotalCount, nil
+}
+
 // PullRequest fetches the merge details and head commit of one pull request.
 func (c *Client) PullRequest(ctx context.Context, repo string, number int) (PRDetail, error) {
 	var d PRDetail
