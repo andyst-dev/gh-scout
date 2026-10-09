@@ -19,6 +19,27 @@ func (f *fakeCounter) MergedPRCount(_ context.Context, repo, _ string) (int, err
 	return f.counts[repo], nil
 }
 
+func (f *fakeCounter) MergedByRepo(_ context.Context, _ string) (map[string]int, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.counts, nil
+}
+
+func TestRunAllRepos(t *testing.T) {
+	c := &fakeCounter{counts: map[string]int{"acme/widgets": 3, "acme/gadgets": 5}}
+	rep, err := Run(context.Background(), c, "andy", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Total != 8 {
+		t.Fatalf("total=%d want 8", rep.Total)
+	}
+	if len(rep.Repos) != 2 || rep.Repos[0].Repo != "acme/gadgets" || rep.Repos[0].Merged != 5 {
+		t.Fatalf("expected count-desc sort first=acme/gadgets: %+v", rep.Repos)
+	}
+}
+
 func TestRun(t *testing.T) {
 	c := &fakeCounter{counts: map[string]int{"acme/widgets": 15, "acme/gadgets": 12}}
 	rep, err := Run(context.Background(), c, "andy", []string{"acme/widgets", "acme/gadgets"})

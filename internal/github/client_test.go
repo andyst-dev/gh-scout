@@ -198,6 +198,22 @@ func TestClientMergedPRCount(t *testing.T) {
 	}
 }
 
+func TestClientMergedByRepo(t *testing.T) {
+	body := `{"total_count":3,"items":[
+	  {"repository_url":"https://api.github.com/repos/acme/widgets","number":1},
+	  {"repository_url":"https://api.github.com/repos/acme/widgets","number":2},
+	  {"repository_url":"https://api.github.com/repos/acme/gadgets","number":3}]}`
+	c, srv := newTestClient(t, "/search/issues", true, http.StatusOK, body)
+	defer srv.Close()
+	counts, err := c.MergedByRepo(context.Background(), "andy")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if counts["acme/widgets"] != 2 || counts["acme/gadgets"] != 1 || len(counts) != 2 {
+		t.Fatalf("counts=%+v", counts)
+	}
+}
+
 func TestClientPullRequest(t *testing.T) {
 	body := `{"mergeable":false,"mergeable_state":"dirty",
 		"head":{"sha":"abc123"},"base":{"ref":"main"},

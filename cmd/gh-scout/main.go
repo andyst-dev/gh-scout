@@ -170,9 +170,7 @@ func runHistory(args []string, stdout *os.File) error {
 		return nil
 	}
 	repos := fs.Args()
-	if len(repos) == 0 {
-		return errors.New("no repositories given (e.g. gh-scout history owner/name ...)")
-	}
+	// Without repos, enumerate the author's merged PRs across all repositories.
 	for _, r := range repos {
 		if !strings.Contains(r, "/") {
 			return fmt.Errorf("repository %q must be owner/name", r)

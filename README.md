@@ -303,6 +303,10 @@ Total: 31
 `--user` autodetects the author from the token like `prs`; `--format json`
 prints a machine-readable `{author, repos:[{repo, merged}], total}`.
 
+With no repositories, `gh-scout history` enumerates the author's merged PRs
+across **all** repositories and aggregates by repo, highest count first - the
+"everything" view in one command.
+
 ## How it decides
 
 Each issue becomes a **candidate** with one of three statuses:

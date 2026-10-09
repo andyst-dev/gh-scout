@@ -193,6 +193,44 @@ func (c *Client) MergedPRCount(ctx context.Context, repo, user string) (int, err
 	return raw.TotalCount, nil
 }
 
+// MergedByRepo counts the user's merged pull requests per repository across
+// all repositories, by enumerating the search results and aggregating by
+// repository. Unlike the collection endpoints, /search/issues returns an
+// object with an items array, so this pages through c.get instead of c.list.
+func (c *Client) MergedByRepo(ctx context.Context, user string) (map[string]int, error) {
+	q := url.QueryEscape("author:" + user + " is:pr is:merged")
+	u := c.baseURL + "/search/issues?q=" + q + "&sort=updated&order=desc&per_page=" + fmt.Sprint(perPage)
+
+	counts := make(map[string]int, 16)
+	for page := 1; page <= maxPages && u != ""; page++ {
+		res, err := c.get(ctx, u)
+		if err != nil {
+			return nil, err
+		}
+		if err := checkStatus(res); err != nil {
+			_ = res.Body.Close()
+			return nil, err
+		}
+		var raw struct {
+			Items []map[string]any `json:"items"`
+		}
+		if err := json.NewDecoder(res.Body).Decode(&raw); err != nil {
+			_ = res.Body.Close()
+			return nil, fmt.Errorf("decode GitHub response: %w", err)
+		}
+		_ = res.Body.Close()
+		for _, it := range raw.Items {
+			repo := repoFromURL(str(it["repository_url"]))
+			if repo == "" {
+				continue
+			}
+			counts[repo]++
+		}
+		u = nextPageURL(res.Header.Get("Link"))
+	}
+	return counts, nil
+}
+
 // PullRequest fetches the merge details and head commit of one pull request.
 func (c *Client) PullRequest(ctx context.Context, repo string, number int) (PRDetail, error) {
 	var d PRDetail
