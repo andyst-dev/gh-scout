@@ -2,11 +2,13 @@
 
 ![gh-scout](assets/banner.png)
 
-**Find contribution-worthy GitHub issues without duplicating someone else's in-progress work.**
+**Find contribution-worthy GitHub issues, triage your own pull requests, and
+count your merge history - one read-only binary.**
 
-`gh-scout` scans a repository's open issues, filters out the ones an open pull
-request already targets, scores how "fixable" the rest look, and prints a ranked,
-motivated shortlist for an OSS contributor to pick from.
+`gh-scout` does three jobs:
+- picks contribution-worthy **issues** without duplicating in-progress work,
+- tells you, for each of **your open pull requests**, who owes the next move,
+- counts how many pull requests you've **merged** per repository.
 
 [![go](https://img.shields.io/badge/go-1.27-00ADD8?logo=go)](https://go.dev)
 [![CI](https://github.com/andyst-dev/gh-scout/workflows/ci/badge.svg)](https://github.com/andyst-dev/gh-scout/actions)
@@ -93,6 +95,17 @@ Issues and Pull requests (a classic `repo` or `public_repo` token also works).
 
 ## Usage
 
+**Commands at a glance.**
+
+| Command | What it does |
+|---|---|
+| `gh-scout owner/repo [...]` | picks contribution-worthy **issues** |
+| `gh-scout prs` | triages your open **pull requests** (`Up to you` vs `Waiting on others`) |
+| `gh-scout history [repo ...]` | counts your **merged** pulls per repository |
+| `gh-scout rules-template` | prints the default scoring rules to edit |
+
+### Issue scout
+
 ```sh
 gh-scout [flags] owner/repo [owner/repo ...]
 ```
@@ -151,11 +164,6 @@ gh-scout --rules-file rules.json acme/widgets
 
 Valid thresholds are 0-100. `--min-score` still applies on top of the rules'
 ready threshold.
-
-- a merged PR that referenced the issue has **already implemented it** - the fix
-  shipped, the issue was just never closed. These are excluded (`Excluded`)
-  with "merged PR #N already implemented it" (a fix a merge closed would have
-  closed the issue itself; both signals then agree).
 
 ### Rules reference
 
@@ -300,12 +308,18 @@ $ gh-scout history chrisbenincasa/tunarr kodustech/kodus-ai superset-sh/superset
 Total: 31
 ```
 
-`--user` autodetects the author from the token like `prs`; `--format json`
-prints a machine-readable `{author, repos:[{repo, merged}], total}`.
-
 With no repositories, `gh-scout history` enumerates the author's merged PRs
 across **all** repositories and aggregates by repo, highest count first - the
 "everything" view in one command.
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--user` | | PR author to count (auto-detected from the token if empty) |
+| `--format` | `markdown` | `markdown` or `json` |
+| `--token` | | GitHub token (defaults to `GITHUB_TOKEN`) |
+| `--version` | | print version and exit |
+
+`--format json` prints a machine-readable `{author, repos:[{repo, merged}], total}`.
 
 ## How it decides
 
@@ -316,6 +330,9 @@ Each issue becomes a **candidate** with one of three statuses:
 - **`addressed`**: an open pull request at least mentions the issue
   (`Fixes #9`, `Closes #4`, or any `#N` in its body). Deliberately broad: a PR
   that links an issue is signalling that issue is being worked on.
+- **`merged`**: a recent merged pull request referenced the issue - the fix
+  shipped, the issue was just never closed. Same exclusion as `addressed`,
+  shown as "merged PR #N already implemented it".
 - **`unclear`**: too little to judge; skipped from the ready set.
 
 The **fixability score (0-100)** is a sum of fixed point deltas, purely
@@ -377,8 +394,10 @@ similar title without an explicit issue link.
 
 - The score is **heuristic**, not a verdict. `ready` means "looks worth a
   read", never "merge this". Open the issue and judge before starting.
-- The `addressed` check only sees **open** pull requests. An issue whose fix
-  was merged (or abandoned) still shows as ready.
+- An issue never reads as `ready` when an **open** pull request references it
+  or a **recent merged** pull request already implemented it. A fix landed long
+  ago (older than the 200 recent closed pull requests scanned) or through a
+  direct commit with no pull request is still missed.
 - Only issues are scanned from the repository's first four result pages, so
   the very oldest issues may be out of reach on huge repos.
 - With no `GITHUB_TOKEN`, the anonymous quota (60 req/h) is spent in a couple
@@ -387,10 +406,12 @@ similar title without an explicit issue link.
 ## Project layout
 
 ```
-cmd/gh-scout/     CLI entry point, flag wiring (issue scout + `prs` subcommand)
+cmd/gh-scout/     CLI entry point: issue scout (default), `prs`, `history`, `rules-template`
 internal/github/  minimal REST client (tokened, paginated)
 internal/scout/   orchestration, anti-duplicate matching, scoring
 internal/prs/     pull-request scout: response detection, status, review-verdict action, renderers
+internal/history/ merged-pull counts per repository
+internal/state/   atomic `--delta` snapshot
 internal/report/  Markdown + JSON renderers (shared format kinds)
 ```
 
